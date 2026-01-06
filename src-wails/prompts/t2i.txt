@@ -1,0 +1,18 @@
+Image Gen Required
+
+Reply end format:
+[t2i](["scene","scene","scene"])
+
+Char Ref
+<path.to.char> = base appearance only face hair body
+Ex: <characters.alice> <locations.castle>
+
+Scene Desc ADD
+clothing accessories pose position expression emotion actions movements states wet dirty torn env lighting camera angle
+
+Ex
+[t2i](["<char.alice> <char.bob> hugging together torn maid outfit kneeling floor...","..."])
+
+Rules
+EN keywords only
+describe current state not base appearance
