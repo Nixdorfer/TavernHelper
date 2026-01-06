@@ -1,0 +1,45 @@
+# TODO
+src-tauri/
+
+# IDE 和工具
+.claude/
+CLAUDE.md
+.idea/
+.vscode/
+interface/
+*.har
+*.swp
+
+# 构建产物
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.lib
+*.apk
+
+# Rust/Tauri
+src-tauri/target/
+src-tauri/gen/
+src-tauri/Cargo.lock
+src-tauri/.cargo/
+
+# Vue/Node
+src-vue/node_modules/
+src-vue/wailsjs/
+
+# Wails
+src-wails/build/
+src-wails/dist/
+
+# 数据库工作台
+drivers/
+workspace/
+
+# 日志和临时文件
+frontend.bak/
+*.log
+*.tmp
+nul
+*.db

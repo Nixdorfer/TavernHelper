@@ -1,0 +1,16 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "worldbook-manager",
+  "outputfilename": "世界设定书管理器",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build && robocopy ..\\dist\\pc ..\\src-wails\\dist /E /IS /IT & if errorlevel 8 exit 1",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "frontend:dir": "../src-vue",
+  "wailsjsdir": "../src-vue/wailsjs",
+  "outputdir": "../build/wails",
+  "author": {
+    "name": "Nixdorfer",
+    "email": "admin@nixdorfer.com"
+  }
+}

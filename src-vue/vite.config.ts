@@ -1,0 +1,33 @@
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import path from 'path'
+const platform = process.env.VITE_PLATFORM || 'pc'
+export default defineConfig({
+  plugins: [vue()],
+  define: {
+    'import.meta.env.VITE_PLATFORM': JSON.stringify(platform),
+    'import.meta.env.VITE_BACKEND': JSON.stringify(process.env.VITE_BACKEND || 'wails')
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
+      '@api': path.resolve(__dirname, 'api'),
+      '@stores': path.resolve(__dirname, 'stores'),
+      '@composables': path.resolve(__dirname, 'composables'),
+      '@components': path.resolve(__dirname, 'components'),
+      '@platform': path.resolve(__dirname, `platforms/${platform}`),
+      '@types': path.resolve(__dirname, 'types')
+    }
+  },
+  server: {
+    port: platform === 'mobile' ? 5174 : 5173,
+    hmr: {
+      host: 'localhost',
+      protocol: 'ws'
+    }
+  },
+  build: {
+    outDir: path.resolve(__dirname, `../dist/${platform}`),
+    emptyOutDir: true
+  }
+})
