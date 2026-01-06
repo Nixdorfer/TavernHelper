@@ -1,7 +1,9 @@
 import { wailsAdapter } from './adapter/wails'
+import { tauriAdapter } from './adapter/tauri'
 const BACKEND = import.meta.env.VITE_BACKEND || 'wails'
 const adapters: Record<string, typeof wailsAdapter> = {
-  wails: wailsAdapter
+  wails: wailsAdapter,
+  tauri: tauriAdapter
 }
 export const api = adapters[BACKEND] || wailsAdapter
 export * from './modules/auth'

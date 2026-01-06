@@ -1,23 +1,27 @@
-# TODO
-src-tauri/
+# 参考项
+Reference/
+*.har
 
 # IDE 和工具
 .claude/
 CLAUDE.md
-.idea/
-.vscode/
-interface/
-*.har
-*.swp
+drivers/
+workspace/
 
 # 构建产物
+nul
 dist/
+*.swp
 *.exe
 *.exe~
 *.dll
 *.so
 *.lib
 *.apk
+
+# Wails
+src-wails/build/bin/
+src-wails/dist/
 
 # Rust/Tauri
 src-tauri/target/
@@ -29,17 +33,8 @@ src-tauri/.cargo/
 src-vue/node_modules/
 src-vue/wailsjs/
 
-# Wails
-src-wails/build/
-src-wails/dist/
-
-# 数据库工作台
-drivers/
-workspace/
-
 # 日志和临时文件
-frontend.bak/
 *.log
 *.tmp
-nul
 *.db
+*.sql

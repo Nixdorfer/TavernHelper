@@ -113,16 +113,16 @@ goto rust_pc_run
 :rust_pc_run
 if "%DEBUG%"=="1" (
     echo [INFO] Starting Rust PC in debug mode...
-    cargo tauri dev -c src-tauri/tauri.conf.pc.json
+    cargo tauri dev
 ) else (
     echo [INFO] Starting Rust PC...
-    start "" /b cargo tauri dev -c src-tauri/tauri.conf.pc.json
+    start "" /b cargo tauri dev
 )
 goto end
 
 :rust_pc_build
 echo [INFO] Building Rust PC...
-cargo tauri build -c src-tauri/tauri.conf.pc.json
+cargo tauri build
 if errorlevel 1 (
     echo [FATAL] Build failed
 ) else (

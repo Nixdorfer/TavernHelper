@@ -1,0 +1,13 @@
+{
+  "$schema": "https://tauri.app/schema/capability",
+  "identifier": "default",
+  "description": "Default capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "clipboard-manager:default",
+    "fs:default",
+    "shell:default"
+  ]
+}

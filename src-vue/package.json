@@ -14,6 +14,7 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.9.1",
     "grapesjs": "^0.22.14",
     "grapesjs-preset-webpage": "^1.0.3",
     "pinia": "^2.1.7",
