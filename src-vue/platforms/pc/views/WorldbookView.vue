@@ -207,6 +207,21 @@
                       </div>
                     </div>
                     <div v-show="activePromptSection === 'triggers'" class="editor-section">
+                      <div class="form-group trigger-toggles">
+                        <label>触发来源</label>
+                        <div class="trigger-toggle-row">
+                          <span class="trigger-toggle-label">系统</span>
+                          <div class="trigger-switch" :class="{ checked: editingPromptEntry?.triggerSystem }" @click="editingPromptEntry && (editingPromptEntry.triggerSystem = !editingPromptEntry.triggerSystem)"></div>
+                        </div>
+                        <div class="trigger-toggle-row">
+                          <span class="trigger-toggle-label">用户</span>
+                          <div class="trigger-switch" :class="{ checked: editingPromptEntry?.triggerUser }" @click="editingPromptEntry && (editingPromptEntry.triggerUser = !editingPromptEntry.triggerUser)"></div>
+                        </div>
+                        <div class="trigger-toggle-row">
+                          <span class="trigger-toggle-label">AI</span>
+                          <div class="trigger-switch" :class="{ checked: editingPromptEntry?.triggerAI }" @click="editingPromptEntry && (editingPromptEntry.triggerAI = !editingPromptEntry.triggerAI)"></div>
+                        </div>
+                      </div>
                       <div class="form-group">
                         <label>触发词</label>
                         <div class="keywords-container">
@@ -232,21 +247,6 @@
                             {{ kw }}
                             <button @click="removePromptKeyword(idx)" class="keyword-remove">×</button>
                           </span>
-                        </div>
-                      </div>
-                      <div class="form-group trigger-toggles">
-                        <label>触发来源</label>
-                        <div class="trigger-toggle-row">
-                          <span class="trigger-toggle-label">系统</span>
-                          <div class="trigger-switch" :class="{ checked: editingPromptEntry?.triggerSystem }" @click="editingPromptEntry && (editingPromptEntry.triggerSystem = !editingPromptEntry.triggerSystem)"></div>
-                        </div>
-                        <div class="trigger-toggle-row">
-                          <span class="trigger-toggle-label">用户</span>
-                          <div class="trigger-switch" :class="{ checked: editingPromptEntry?.triggerUser }" @click="editingPromptEntry && (editingPromptEntry.triggerUser = !editingPromptEntry.triggerUser)"></div>
-                        </div>
-                        <div class="trigger-toggle-row">
-                          <span class="trigger-toggle-label">AI</span>
-                          <div class="trigger-switch" :class="{ checked: editingPromptEntry?.triggerAI }" @click="editingPromptEntry && (editingPromptEntry.triggerAI = !editingPromptEntry.triggerAI)"></div>
                         </div>
                       </div>
                     </div>
@@ -689,6 +689,7 @@ import type { NodeTemplate, FolderTemplate, CardTemplate } from '@/types'
 import TimelineGraph from '@/components/business/TimelineGraph.vue'
 import MarkdownEditor from '@/components/business/MarkdownEditor.vue'
 import SyncEditor from '@/components/business/SyncEditor.vue'
+import { logger } from '@/utils/logger'
 interface ProjectInfo {
   fileName: string
   name: string
@@ -730,9 +731,9 @@ async function loadSystemFolderChangeIds() {
   if (!currentProject.value?.id) return
   try {
     systemFolderChangeIds.value = await worldTreeApi.getSystemFolderChangeIds(currentProject.value.id)
-    console.log('[loadSystemFolderChangeIds] 系统文件夹changeId:', systemFolderChangeIds.value)
+    logger.log('[loadSystemFolderChangeIds] 系统文件夹changeId:', systemFolderChangeIds.value)
   } catch (e) {
-    console.error('[loadSystemFolderChangeIds] 获取失败:', e)
+    logger.error('[loadSystemFolderChangeIds] 获取失败:', e)
   }
 }
 const nodeDetail = ref<NodeTemplate | null>(null)
@@ -741,11 +742,11 @@ async function loadNodeDetail(nodeId: number) {
   if (isLoadingNodeDetail.value) return
   isLoadingNodeDetail.value = true
   try {
-    console.log('[loadNodeDetail] 加载节点详情:', nodeId)
+    logger.log('[loadNodeDetail] 加载节点详情:', nodeId)
     nodeDetail.value = await worldTreeApi.getNodeDetail(nodeId)
-    console.log('[loadNodeDetail] 节点详情加载完成:', nodeDetail.value)
+    logger.log('[loadNodeDetail] 节点详情加载完成:', nodeDetail.value)
   } catch (e) {
-    console.error('[loadNodeDetail] 加载失败:', e)
+    logger.error('[loadNodeDetail] 加载失败:', e)
     nodeDetail.value = null
   } finally {
     isLoadingNodeDetail.value = false
@@ -952,14 +953,14 @@ async function loadProjects() {
 const isLoadingProject = ref(false)
 async function selectProject(project: ProjectInfo) {
   if (isLoadingProject.value) {
-    console.log('[SelectProject] 已在加载中，跳过:', project.fileName)
+    logger.log('[SelectProject] 已在加载中，跳过:', project.fileName)
     return
   }
   isLoadingProject.value = true
   try {
-    console.log('[SelectProject] 开始加载项目:', project.fileName)
+    logger.log('[SelectProject] 开始加载项目:', project.fileName)
     const result = await projectStore.loadProject(project.fileName)
-    console.log('[SelectProject] 项目加载完成:', currentProject.value)
+    logger.log('[SelectProject] 项目加载完成:', currentProject.value)
     await loadSystemFolderChangeIds()
     showProjectSelector.value = false
     openTabs.value.push({
@@ -980,7 +981,7 @@ async function selectProject(project: ProjectInfo) {
       fullWorldTreeActive.value = true
     }
   } catch (e: any) {
-    console.error('[SelectProject] 加载失败:', e)
+    logger.error('[SelectProject] 加载失败:', e)
     notificationStore.showNotification('加载项目失败: ' + e.message, 'error')
   } finally {
     isLoadingProject.value = false
@@ -1022,19 +1023,19 @@ function selectProjectType(type: 'play' | 'create') {
 async function createProject() {
   if (!newProjectName.value.trim()) return
   try {
-    console.log('[CreateProject] 开始创建项目:', newProjectName.value.trim(), newProjectType.value)
+    logger.log('[CreateProject] 开始创建项目:', newProjectName.value.trim(), newProjectType.value)
     await projectApi.create(newProjectName.value.trim(), newProjectType.value)
-    console.log('[CreateProject] 项目创建成功，重新加载项目列表')
+    logger.log('[CreateProject] 项目创建成功，重新加载项目列表')
     await projectStore.loadProjects()
     showCreateProjectModal.value = false
     notificationStore.showNotification('项目创建成功', 'success')
     const created = projects.value?.find(p => p.name === newProjectName.value.trim())
-    console.log('[CreateProject] 查找创建的项目:', created)
+    logger.log('[CreateProject] 查找创建的项目:', created)
     if (created) {
       await selectProject(created)
     }
   } catch (e: any) {
-    console.error('[CreateProject] 创建失败:', e)
+    logger.error('[CreateProject] 创建失败:', e)
     notificationStore.showNotification('创建失败: ' + e.message, 'error')
   }
 }
@@ -1077,7 +1078,7 @@ async function saveCurrentNode(nodeId: number) {
   try {
     await projectApi.updateCurrentNode(projectName, nodeId)
   } catch (e) {
-    console.error('Failed to save current node:', e)
+    logger.error('Failed to save current node:', e)
   }
 }
 async function handleSelectNode(node: any) {
@@ -1225,7 +1226,7 @@ function onDrop(e: DragEvent, target: string) {
     dragData.value = null
     return
   }
-  console.log(`[Drag] Moving ${type} ${id} from ${source} to ${target}`)
+  logger.log(`[Drag] Moving ${type} ${id} from ${source} to ${target}`)
   dragData.value = null
 }
 function onDropToFolder(e: DragEvent, folderId: string, section: string) {
@@ -1233,7 +1234,7 @@ function onDropToFolder(e: DragEvent, folderId: string, section: string) {
   if (!dragData.value) return
   const { type, id } = dragData.value
   if (type === 'card' || type === 'folder') {
-    console.log(`[Drag] Moving ${type} ${id} into folder ${folderId} in section ${section}`)
+    logger.log(`[Drag] Moving ${type} ${id} into folder ${folderId} in section ${section}`)
   }
   dragData.value = null
 }
@@ -1242,7 +1243,7 @@ function onDropToRoot(e: DragEvent, section: string) {
   if (!dragData.value) return
   const { type, id } = dragData.value
   if (type === 'card' || type === 'folder') {
-    console.log(`[Drag] Moving ${type} ${id} to root of section ${section}`)
+    logger.log(`[Drag] Moving ${type} ${id} to root of section ${section}`)
   }
   dragData.value = null
 }
@@ -1258,25 +1259,25 @@ async function addPromptFolder(type: string) {
       await worldTreeApi.addFolderWithParent(currentNode.value.id, parentFolderChangeId, '新目录')
       await loadNodeDetail(currentNode.value.id)
     } catch (e) {
-      console.error('[addPromptFolder] 创建文件夹失败:', e)
+      logger.error('[addPromptFolder] 创建文件夹失败:', e)
     }
   }
   promptAddMenu.value = ''
   notificationStore.showNotification('目录已添加', 'success')
 }
 async function addPromptEntry(type: string) {
-  console.log('[addPromptEntry] 添加条目, type:', type)
-  console.log('[addPromptEntry] currentNode:', currentNode.value)
+  logger.log('[addPromptEntry] 添加条目, type:', type)
+  logger.log('[addPromptEntry] currentNode:', currentNode.value)
   if (!currentNode.value) return
   const fieldName = type === 'preText' ? 'pre_text' : type === 'postText' ? 'post_text' : 'pre_prompt'
   if (!currentNode.value[fieldName]) currentNode.value[fieldName] = []
   const sysFolderName = type === 'preText' ? 'SYS_PRE' : type === 'postText' ? 'SYS_POST' : 'SYS_GLOBAL'
   const folderChangeId = systemFolderChangeIds.value[sysFolderName]
-  console.log('[addPromptEntry] folderChangeId:', folderChangeId, 'for', sysFolderName)
+  logger.log('[addPromptEntry] folderChangeId:', folderChangeId, 'for', sysFolderName)
   if (folderChangeId && currentNode.value.id) {
     try {
       const newCardChangeId = await worldTreeApi.addCard(currentNode.value.id, folderChangeId, '新条目', '')
-      console.log('[addPromptEntry] 创建card成功, changeId:', newCardChangeId)
+      logger.log('[addPromptEntry] 创建card成功, changeId:', newCardChangeId)
       await loadNodeDetail(currentNode.value.id)
       const cards = type === 'preText' ? preTextCards.value : type === 'postText' ? postTextCards.value : prePromptCards.value
       const newCardIndex = cards.findIndex(c => c.cardId === String(newCardChangeId))
@@ -1285,7 +1286,7 @@ async function addPromptEntry(type: string) {
         selectPromptEntryByCard(type, newCardIndex, newCard)
       }
     } catch (e) {
-      console.error('[addPromptEntry] 创建card失败:', e)
+      logger.error('[addPromptEntry] 创建card失败:', e)
     }
   }
   promptAddMenu.value = ''
@@ -1387,7 +1388,7 @@ function selectPromptEntryByCard(type: string, idx: number, item: { cardId: stri
 async function deletePromptEntryByCard(type: string, cardId: string) {
   const confirmed = await confirmStore.confirmDelete('此卡片')
   if (!confirmed) return
-  console.log('[deletePromptEntryByCard] 删除卡片:', cardId)
+  logger.log('[deletePromptEntryByCard] 删除卡片:', cardId)
   notificationStore.showNotification('删除功能待实现', 'info')
 }
 async function deletePromptEntry(data: { type: string; idx: number }) {
@@ -1460,8 +1461,8 @@ function removePromptT2iKeyword(idx: number) {
   editingPromptEntry.value?.t2iKeywords?.splice(idx, 1)
 }
 function addContentItem() {
-  console.log('[addContentItem] 添加词条内容')
-  console.log('[addContentItem] editingEntry:', editingEntry.value)
+  logger.log('[addContentItem] 添加词条内容')
+  logger.log('[addContentItem] editingEntry:', editingEntry.value)
   if (!editingEntry.value) return
   if (!editingEntry.value.contentItems) {
     editingEntry.value.contentItems = []
@@ -1477,7 +1478,7 @@ function addContentItem() {
     valueRegion: 1
   })
   effectiveContentItems.value = [...editingEntry.value.contentItems]
-  console.log('[addContentItem] 添加后contentItems:', editingEntry.value.contentItems)
+  logger.log('[addContentItem] 添加后contentItems:', editingEntry.value.contentItems)
 }
 function toggleContentItemCollapsed(item: any) {
   item.collapsed = !item.collapsed
@@ -1553,22 +1554,22 @@ function clearSyncDots() {
   }
 }
 function updateSyncDotsFromResult(blocks: Record<string, Record<string, { content: string | null; syncDot: string }>>) {
-  console.log('[updateSyncDotsFromResult] 收到blocks:', JSON.stringify(blocks, null, 2))
+  logger.log('[updateSyncDotsFromResult] 收到blocks:', JSON.stringify(blocks, null, 2))
   isUpdatingSyncDots.value = true
   const updateItems = (contentItems: any[], label: string) => {
-    console.log(`[updateSyncDotsFromResult] 更新${label}, contentItems数量:`, contentItems.length)
+    logger.log(`[updateSyncDotsFromResult] 更新${label}, contentItems数量:`, contentItems.length)
     for (const item of contentItems) {
       const blockKey = String(item.blockChangeId)
-      console.log(`[updateSyncDotsFromResult] item blockChangeId:`, item.blockChangeId, 'blockKey:', blockKey, 'blocks中是否存在:', !!blocks[blockKey])
+      logger.log(`[updateSyncDotsFromResult] item blockChangeId:`, item.blockChangeId, 'blockKey:', blockKey, 'blocks中是否存在:', !!blocks[blockKey])
       if (blocks[blockKey]) {
         const blockLines = blocks[blockKey]
-        console.log(`[updateSyncDotsFromResult] blockLines:`, blockLines)
+        logger.log(`[updateSyncDotsFromResult] blockLines:`, blockLines)
         item.lines = Object.entries(blockLines).map(([sn, lineData]) => ({
           sn,
           content: lineData.content || '',
           syncDot: lineData.syncDot
         }))
-        console.log(`[updateSyncDotsFromResult] 更新后item.lines:`, item.lines)
+        logger.log(`[updateSyncDotsFromResult] 更新后item.lines:`, item.lines)
       }
     }
   }
@@ -1580,7 +1581,7 @@ function updateSyncDotsFromResult(blocks: Record<string, Record<string, { conten
   }
   nextTick(() => {
     isUpdatingSyncDots.value = false
-    console.log('[updateSyncDotsFromResult] 完成, isUpdatingSyncDots已重置')
+    logger.log('[updateSyncDotsFromResult] 完成, isUpdatingSyncDots已重置')
   })
 }
 function handleCopySerial(serial: string) {
@@ -1595,9 +1596,9 @@ function markSaved() {
   }, 2000)
 }
 async function saveProject() {
-  console.log('[saveProject] 开始保存')
+  logger.log('[saveProject] 开始保存')
   if (!currentProject.value || !currentNode.value) {
-    console.log('[saveProject] 无currentProject或currentNode, 跳过')
+    logger.log('[saveProject] 无currentProject或currentNode, 跳过')
     return
   }
   try {
@@ -1678,17 +1679,17 @@ async function saveProject() {
       effectiveContentItems.value = [...contentItems]
     }
     const hasChanges = Object.keys(changes.card).length > 0 || Object.keys(changes.block).length > 0
-    console.log('[saveProject] hasChanges:', hasChanges, 'changes.block keys:', Object.keys(changes.block))
+    logger.log('[saveProject] hasChanges:', hasChanges, 'changes.block keys:', Object.keys(changes.block))
     if (hasChanges) {
-      console.log('[saveProject] 调用saveNodeChanges:', JSON.stringify(changes, null, 2))
+      logger.log('[saveProject] 调用saveNodeChanges:', JSON.stringify(changes, null, 2))
       const result = await worldTreeApi.saveNodeChanges(nodeId, projectId, changes)
-      console.log('[saveProject] saveNodeChanges返回:', JSON.stringify(result, null, 2))
+      logger.log('[saveProject] saveNodeChanges返回:', JSON.stringify(result, null, 2))
       if (result?.blocks) {
-        console.log('[saveProject] 调用updateSyncDotsFromResult前, editingPromptEntry.contentItems:', JSON.stringify(editingPromptEntry.value?.contentItems?.map(i => ({ blockChangeId: i.blockChangeId, lines: i.lines })), null, 2))
+        logger.log('[saveProject] 调用updateSyncDotsFromResult前, editingPromptEntry.contentItems:', JSON.stringify(editingPromptEntry.value?.contentItems?.map(i => ({ blockChangeId: i.blockChangeId, lines: i.lines })), null, 2))
         updateSyncDotsFromResult(result.blocks)
-        console.log('[saveProject] 调用updateSyncDotsFromResult后, editingPromptEntry.contentItems:', JSON.stringify(editingPromptEntry.value?.contentItems?.map(i => ({ blockChangeId: i.blockChangeId, lines: i.lines })), null, 2))
+        logger.log('[saveProject] 调用updateSyncDotsFromResult后, editingPromptEntry.contentItems:', JSON.stringify(editingPromptEntry.value?.contentItems?.map(i => ({ blockChangeId: i.blockChangeId, lines: i.lines })), null, 2))
       } else {
-        console.log('[saveProject] result.blocks为空或undefined')
+        logger.log('[saveProject] result.blocks为空或undefined')
       }
     }
     if (editingNodeInfo.value) {
@@ -1704,7 +1705,7 @@ async function saveProject() {
     markSaved()
     notificationStore.showNotification('保存成功', 'success')
   } catch (e: any) {
-    console.error('[saveProject] 保存失败:', e)
+    logger.error('[saveProject] 保存失败:', e)
     notificationStore.showNotification('保存失败: ' + e.message, 'error')
   }
 }

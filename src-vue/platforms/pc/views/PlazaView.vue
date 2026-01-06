@@ -51,6 +51,8 @@ import { ref, computed, watch } from 'vue'
 import { useAuthStore, useConfigStore, useAppStore, useNotificationStore } from '@/stores'
 import { useConversationStore } from '@/stores/modules/conversation'
 import AppDetailModal from '@/components/modals/AppDetailModal.vue'
+import { api } from '@/api'
+import { logger } from '@/utils/logger'
 interface PlazaApp {
   id: string
   name: string
@@ -92,7 +94,7 @@ const loadApps = async () => {
     let result: PlazaApp[] = []
     if (tabKey === 'starauthor') {
       const url = `https://aipornhub.ltd/console/api/account/author-ranking?page=1&page_size=30&sort_by=total_overall_rank&sort_order=desc`
-      const response = await (window as any).go.main.App.FetchWithAuth(token.value, url, 'GET', '')
+      const response = await api.creation.fetchWithAuth(token.value, url, 'GET', '')
       const data = JSON.parse(response)
       const items = data.data || []
       if (Array.isArray(items)) {
@@ -107,7 +109,7 @@ const loadApps = async () => {
       }
     } else {
       const url = `https://aipornhub.ltd/go/api/explore/search?keywords=&ranking=${tabKey}&page=1&limit=30&order=default&lang=zh-Hans`
-      const response = await (window as any).go.main.App.FetchWithAuth(token.value, url, 'GET', '')
+      const response = await api.creation.fetchWithAuth(token.value, url, 'GET', '')
       const data = JSON.parse(response)
       const items = data.data?.apps || data.data?.items || data.items || []
       if (Array.isArray(items)) {
@@ -125,7 +127,7 @@ const loadApps = async () => {
     }
     apps.value = result
   } catch (e) {
-    console.error('加载广场列表失败:', e)
+    logger.error('加载广场列表失败:', e)
     apps.value = []
   }
   loading.value = false

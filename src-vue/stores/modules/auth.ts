@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia'
+import { api } from '@/api'
+import { logger } from '@/utils/logger'
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: '',
@@ -19,19 +21,18 @@ export const useAuthStore = defineStore('auth', {
       this.points = points
     },
     async login(email: string, password: string, rememberMe: boolean) {
-      if (!window.go?.main?.App) throw new Error('Wails未初始化')
-      const result = await window.go.main.App.AuthLogin(email, password, rememberMe)
+      const result = await api.auth.login(email, password, rememberMe)
       const token = typeof result?.data === 'string' ? result.data : (result?.data?.access_token || result?.access_token)
       if (!token) {
         throw new Error(result?.message || result?.data?.message || '登录失败')
       }
       this.token = token
-      const profile = await window.go!.main.App.AuthGetProfile(token)
+      const profile = await api.auth.getProfile(token)
       if (profile?.data) {
         this.userName = profile.data.name || profile.data.email
         this.userId = profile.data.id
       }
-      const points = await window.go!.main.App.AuthGetPoints(token, this.userId)
+      const points = await api.auth.getPoints(token, this.userId)
       if (points?.data) {
         this.points = points.data.points || 0
       }
@@ -39,11 +40,11 @@ export const useAuthStore = defineStore('auth', {
     },
     async logout() {
       try {
-        if (this.token && window.go?.main?.App) {
-          await window.go.main.App.AuthLogout(this.token)
+        if (this.token) {
+          await api.auth.logout(this.token)
         }
       } catch (e) {
-        console.error('登出接口调用失败:', e)
+        logger.error('登出接口调用失败:', e)
       }
       this.token = ''
       this.userId = ''
@@ -61,7 +62,7 @@ export const useAuthStore = defineStore('auth', {
           this.userName = data.userName || ''
           this.points = data.points || 0
         } catch (e) {
-          console.error('恢复auth失败:', e)
+          logger.error('恢复auth失败:', e)
         }
       }
     }

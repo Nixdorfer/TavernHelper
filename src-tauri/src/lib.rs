@@ -1,8 +1,10 @@
 mod commands;
 mod database;
+mod logger;
 mod services;
 mod types;
 
+#[cfg(debug_assertions)]
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -12,13 +14,15 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
-        .setup(|app| {
-            let app_data_dir = app.path().app_data_dir().expect("Failed to get app data dir");
-            std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
-            database::init_db(&app_data_dir).expect("Failed to initialize database");
+        .setup(|_app| {
+            let exe_dir = std::env::current_exe()
+                .map(|p| p.parent().unwrap_or(&p).to_path_buf())
+                .expect("Failed to get exe dir");
+            logger::init_with_dir(&exe_dir);
+            database::init_db(&exe_dir).expect("Failed to initialize database");
             #[cfg(debug_assertions)]
             {
-                if let Some(window) = app.get_webview_window("main") {
+                if let Some(window) = _app.get_webview_window("main") {
                     window.open_devtools();
                 }
             }
@@ -39,6 +43,7 @@ pub fn run() {
             commands::project::update_project_current_node,
             commands::project::load_project,
             commands::project::update_project_time,
+            commands::node::get_project_nodes,
             commands::node::create_child_node,
             commands::node::create_brother_node,
             commands::node::rename_node,
@@ -167,6 +172,8 @@ pub fn run() {
             commands::system::read_prompt_file,
             commands::system::write_prompt_file,
             commands::system::is_caps_lock_on,
+            commands::system::is_log_enabled,
+            commands::system::write_vue_log,
             commands::crypto::generate_encryption_key_pair,
             services::dirty_manager::get_dirty_state,
             services::dirty_manager::set_original_content,

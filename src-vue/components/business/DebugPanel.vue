@@ -47,68 +47,47 @@
 </template>
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 interface ApiItem {
   name: string
+  command: string
   file: string
   signature: string
   params: string[]
 }
 const API_LIST: ApiItem[] = [
-  { name: 'IsDebugMode', file: 'app.go', signature: '() bool', params: [] },
-  { name: 'LogDebug', file: 'app.go', signature: '(tag string, message string)', params: ['tag', 'message'] },
-  { name: 'LoadConfig', file: 'config.go', signature: '() (*Config, error)', params: [] },
-  { name: 'SaveConfig', file: 'config.go', signature: '(config Config) error', params: ['config'] },
-  { name: 'UpdateConfig', file: 'config.go', signature: '(key string, value string) error', params: ['key', 'value'] },
-  { name: 'SaveSessionState', file: 'config.go', signature: '(state SessionState) error', params: ['state'] },
-  { name: 'LoadSessionState', file: 'config.go', signature: '() (*SessionState, error)', params: [] },
-  { name: 'GetProjects', file: 'project.go', signature: '() ([]ProjectInfo, error)', params: [] },
-  { name: 'LoadProjectByName', file: 'project.go', signature: '(name string) (*Project, error)', params: ['name'] },
-  { name: 'LoadProject', file: 'project.go', signature: '(projectID int) (*Project, error)', params: ['projectID'] },
-  { name: 'CreateProject', file: 'project.go', signature: '(name string) (int, error)', params: ['name'] },
-  { name: 'DeleteProject', file: 'project.go', signature: '(projectName string) error', params: ['projectName'] },
-  { name: 'RenameProject', file: 'project.go', signature: '(oldName string, newName string) error', params: ['oldName', 'newName'] },
-  { name: 'UpdateProjectTime', file: 'project.go', signature: '(projectID int) error', params: ['projectID'] },
-  { name: 'CreateChildNode', file: 'node.go', signature: '(projectName string, parentNodeID any, name string) (*NodeInfo, error)', params: ['projectName', 'parentNodeID', 'name'] },
-  { name: 'CreateBrotherNode', file: 'node.go', signature: '(projectName string, siblingNodeID any, name string) (*NodeInfo, error)', params: ['projectName', 'siblingNodeID', 'name'] },
-  { name: 'UpdateNode', file: 'node.go', signature: '(projectName string, nodeData map[string]any) error', params: ['projectName', 'nodeData'] },
-  { name: 'DeleteNode', file: 'node.go', signature: '(projectName string, nodeID any) error', params: ['projectName', 'nodeID'] },
-  { name: 'RenameNode', file: 'node.go', signature: '(nodeID int, newName string) error', params: ['nodeID', 'newName'] },
-  { name: 'RebaseNode', file: 'node.go', signature: '(nodeID int, newParentID *int) error', params: ['nodeID', 'newParentID'] },
-  { name: 'GetNodePath', file: 'node.go', signature: '(nodeID int) ([]int, error)', params: ['nodeID'] },
-  { name: 'GetApps', file: 'database.go', signature: '() ([]WTApp, error)', params: [] },
-  { name: 'CreateApp', file: 'database.go', signature: '(name string) (int, error)', params: ['name'] },
-  { name: 'DeleteApp', file: 'database.go', signature: '(appID int) error', params: ['appID'] },
-  { name: 'RenameApp', file: 'database.go', signature: '(appID int, newName string) error', params: ['appID', 'newName'] },
-  { name: 'GetLocalConversations', file: 'database.go', signature: '(appID int) ([]WTConversation, error)', params: ['appID'] },
-  { name: 'CreateConversation', file: 'database.go', signature: '(appID int, name string) (int, error)', params: ['appID', 'name'] },
-  { name: 'GetDialogues', file: 'database.go', signature: '(conversationID int, page, limit int) ([]WTDialogue, int, error)', params: ['conversationID', 'page', 'limit'] },
-  { name: 'CreateDialogue', file: 'database.go', signature: '(conversationID int, requestContent, responseContent string) (int, error)', params: ['conversationID', 'requestContent', 'responseContent'] },
-  { name: 'GetGalleryImages', file: 'gallery.go', signature: '() ([]GalleryImage, error)', params: [] },
-  { name: 'GetGalleryFolders', file: 'gallery.go', signature: '() ([]GalleryFolder, error)', params: [] },
-  { name: 'DeleteGalleryImage', file: 'gallery.go', signature: '(id string) error', params: ['id'] },
-  { name: 'GetAllDrafts', file: 'drafts.go', signature: '() ([]Draft, error)', params: [] },
-  { name: 'CreateDraft', file: 'drafts.go', signature: '(draft Draft) error', params: ['draft'] },
-  { name: 'DeleteDraft', file: 'drafts.go', signature: '(id string) error', params: ['id'] },
-  { name: 'GetClipboardCaptures', file: 'drafts.go', signature: '() ([]ClipboardCapture, error)', params: [] },
-  { name: 'CopyToClipboard', file: 'clipboard.go', signature: '(content string) error', params: ['content'] },
-  { name: 'GetSafeModeTxtFiles', file: 'safemode.go', signature: '() ([]string, error)', params: [] },
-  { name: 'IsCapsLockOn', file: 'safemode.go', signature: '() bool', params: [] },
-  { name: 'GetTempDir', file: 'temp_manager.go', signature: '() (string, error)', params: [] },
-  { name: 'ListTempFiles', file: 'temp_manager.go', signature: '() ([]TempFileInfo, error)', params: [] },
-  { name: 'GetUnsavedSessions', file: 'temp_manager.go', signature: '() ([]SessionRecoveryInfo, error)', params: [] },
-  { name: 'GetLocalCreations', file: 'api.go', signature: '() ([]map[string]any, error)', params: [] },
-  { name: 'GetCreationsDir', file: 'api.go', signature: '() (string, error)', params: [] },
-  { name: 'SendTestChat', file: 'llm_api.go', signature: '(request TestChatRequest) TestChatResponse', params: ['request'] },
-  { name: 'GetNodeContent', file: 'worldtree.go', signature: '(nodeID int) (*NodeContent, error)', params: ['nodeID'] },
-  { name: 'AddFolder', file: 'worldtree.go', signature: '(nodeID int, name string) (int, error)', params: ['nodeID', 'name'] },
-  { name: 'AddCard', file: 'worldtree.go', signature: '(nodeID int, folderChangeID *int, name string, keyWord string) (int, error)', params: ['nodeID', 'folderChangeID', 'name', 'keyWord'] },
-  { name: 'AuthLogin', file: 'auth.go', signature: '(email, password string, rememberMe bool) (map[string]any, error)', params: ['email', 'password', 'rememberMe'] },
-  { name: 'AuthGetProfile', file: 'auth.go', signature: '(token string) (map[string]any, error)', params: ['token'] },
-  { name: 'AuthLogout', file: 'auth.go', signature: '(token string) error', params: ['token'] },
-  { name: 'FetchWithAuth', file: 'api.go', signature: '(token, url, method, body string) (string, error)', params: ['token', 'url', 'method', 'body'] },
-  { name: 'GetDirtyState', file: 'dirty_manager.go', signature: '(id string) *DirtyState', params: ['id'] },
-  { name: 'HasAnyDirtyContent', file: 'dirty_manager.go', signature: '() bool', params: [] },
-  { name: 'GetAllDirtyStates', file: 'dirty_manager.go', signature: '() []DirtyState', params: [] }
+  { name: 'IsDebugMode', command: 'is_debug_mode', file: 'system.rs', signature: '() -> bool', params: [] },
+  { name: 'LoadConfig', command: 'load_config', file: 'config.rs', signature: '() -> Result<Config>', params: [] },
+  { name: 'SaveConfig', command: 'save_config', file: 'config.rs', signature: '(config: Config) -> Result<()>', params: ['config'] },
+  { name: 'UpdateConfig', command: 'update_config', file: 'config.rs', signature: '(key: &str, value: Value) -> Result<()>', params: ['key', 'value'] },
+  { name: 'SaveSessionState', command: 'save_session_state', file: 'config.rs', signature: '(state: SessionState) -> Result<()>', params: ['state'] },
+  { name: 'LoadSessionState', command: 'load_session_state', file: 'config.rs', signature: '() -> Result<SessionState>', params: [] },
+  { name: 'GetProjects', command: 'get_projects', file: 'project.rs', signature: '() -> Result<Vec<ProjectInfo>>', params: [] },
+  { name: 'LoadProjectByName', command: 'load_project_by_name', file: 'project.rs', signature: '(name: &str) -> Result<Project>', params: ['name'] },
+  { name: 'CreateProject', command: 'create_project', file: 'project.rs', signature: '(name: &str, projectType: &str) -> Result<i32>', params: ['name', 'projectType'] },
+  { name: 'DeleteProject', command: 'delete_project', file: 'project.rs', signature: '(fileName: &str) -> Result<()>', params: ['fileName'] },
+  { name: 'RenameProject', command: 'rename_project', file: 'project.rs', signature: '(oldName: &str, newName: &str) -> Result<()>', params: ['oldName', 'newName'] },
+  { name: 'CreateChildNode', command: 'create_child_node', file: 'node.rs', signature: '(projectName: &str, parentId: i32, name: &str) -> Result<NodeInfo>', params: ['projectName', 'parentId', 'name'] },
+  { name: 'CreateBrotherNode', command: 'create_brother_node', file: 'node.rs', signature: '(projectName: &str, siblingId: i32, name: &str) -> Result<NodeInfo>', params: ['projectName', 'siblingId', 'name'] },
+  { name: 'DeleteNode', command: 'delete_node', file: 'node.rs', signature: '(projectName: &str, nodeId: i32) -> Result<()>', params: ['projectName', 'nodeId'] },
+  { name: 'RenameNode', command: 'rename_node', file: 'node.rs', signature: '(nodeId: i32, newName: &str) -> Result<()>', params: ['nodeId', 'newName'] },
+  { name: 'GetGalleryImages', command: 'get_gallery_images', file: 'gallery.rs', signature: '() -> Result<Vec<GalleryImage>>', params: [] },
+  { name: 'GetGalleryFolders', command: 'get_gallery_folders', file: 'gallery.rs', signature: '() -> Result<Vec<GalleryFolder>>', params: [] },
+  { name: 'DeleteGalleryImage', command: 'delete_gallery_image', file: 'gallery.rs', signature: '(id: &str) -> Result<()>', params: ['id'] },
+  { name: 'GetAllDrafts', command: 'get_all_drafts', file: 'drafts.rs', signature: '() -> Result<Vec<Draft>>', params: [] },
+  { name: 'CreateDraft', command: 'create_draft', file: 'drafts.rs', signature: '(draft: Draft) -> Result<()>', params: ['draft'] },
+  { name: 'DeleteDraft', command: 'delete_draft', file: 'drafts.rs', signature: '(id: i32) -> Result<()>', params: ['id'] },
+  { name: 'GetClipboardCaptures', command: 'get_clipboard_captures', file: 'drafts.rs', signature: '() -> Result<Vec<ClipboardCapture>>', params: [] },
+  { name: 'CopyToClipboard', command: 'copy_to_clipboard', file: 'clipboard.rs', signature: '(content: &str) -> Result<()>', params: ['content'] },
+  { name: 'GetLocalCreations', command: 'get_local_creations', file: 'creation.rs', signature: '() -> Result<Vec<Value>>', params: [] },
+  { name: 'SendTestChat', command: 'send_test_chat', file: 'creation.rs', signature: '(request: TestChatRequest) -> TestChatResponse', params: ['request'] },
+  { name: 'GetNodeContent', command: 'get_node_content', file: 'worldtree.rs', signature: '(nodeId: i32) -> Result<NodeContent>', params: ['nodeId'] },
+  { name: 'AddFolder', command: 'add_folder', file: 'worldtree.rs', signature: '(nodeId: i32, name: &str) -> Result<i32>', params: ['nodeId', 'name'] },
+  { name: 'AddCard', command: 'add_card', file: 'worldtree.rs', signature: '(nodeId: i32, folderChangeId: i32, name: &str, keyWord: &str) -> Result<i32>', params: ['nodeId', 'folderChangeId', 'name', 'keyWord'] },
+  { name: 'AuthLogin', command: 'auth_login', file: 'auth.rs', signature: '(email: &str, password: &str, rememberMe: bool) -> Result<Value>', params: ['email', 'password', 'rememberMe'] },
+  { name: 'AuthGetProfile', command: 'auth_get_profile', file: 'auth.rs', signature: '(token: &str) -> Result<Value>', params: ['token'] },
+  { name: 'AuthLogout', command: 'auth_logout', file: 'auth.rs', signature: '(token: &str) -> Result<()>', params: ['token'] },
+  { name: 'FetchWithAuth', command: 'fetch_with_auth', file: 'creation.rs', signature: '(token: &str, url: &str, method: &str, body: Option<&str>) -> Result<String>', params: ['token', 'url', 'method', 'body'] },
 ]
 const searchQuery = ref('')
 const apis = ref(API_LIST)
@@ -145,18 +124,22 @@ async function callApi() {
   callError.value = null
   callResult.value = null
   try {
-    let params: any[] = []
+    let paramsObj: Record<string, any> = {}
     try {
-      params = JSON.parse(requestParams.value)
-      if (!Array.isArray(params)) params = [params]
+      const parsed = JSON.parse(requestParams.value)
+      if (Array.isArray(parsed)) {
+        selectedApi.value.params.forEach((paramName, index) => {
+          if (index < parsed.length) {
+            paramsObj[paramName] = parsed[index]
+          }
+        })
+      } else if (typeof parsed === 'object') {
+        paramsObj = parsed
+      }
     } catch (e: any) {
       throw new Error('参数格式错误: ' + e.message)
     }
-    const fn = (window as any).go?.main?.App?.[selectedApi.value.name]
-    if (!fn) {
-      throw new Error('接口不存在: ' + selectedApi.value.name)
-    }
-    const result = await fn(...params)
+    const result = await invoke(selectedApi.value.command, paramsObj)
     callResult.value = result
   } catch (e: any) {
     callError.value = e.message || String(e)

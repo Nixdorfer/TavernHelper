@@ -8,10 +8,12 @@ static DB: OnceLock<Mutex<Connection>> = OnceLock::new();
 
 pub fn init_db(app_data_dir: &Path) -> Result<()> {
     let db_path = app_data_dir.join("tavern.db");
+    tracing::info!("Initializing database at: {:?}", db_path);
     let conn = Connection::open(&db_path)?;
     conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")?;
     schema::init_schema(&conn)?;
     DB.set(Mutex::new(conn)).map_err(|_| rusqlite::Error::InvalidQuery)?;
+    tracing::info!("Database initialized successfully");
     Ok(())
 }
 
@@ -23,6 +25,42 @@ where
     f(&guard)
 }
 
+pub fn with_db_log<F, T>(op: &str, f: F) -> Result<T>
+where
+    F: FnOnce(&Connection) -> Result<T>,
+{
+    tracing::debug!("[DB] {}", op);
+    let guard = DB.get().ok_or(rusqlite::Error::InvalidQuery)?.lock().unwrap();
+    let result = f(&guard);
+    match &result {
+        Ok(_) => tracing::debug!("[DB] {} - OK", op),
+        Err(e) => tracing::error!("[DB] {} - Error: {}", op, e),
+    }
+    result
+}
+
+pub fn with_db_tx<F, T>(op: &str, f: F) -> Result<T>
+where
+    F: FnOnce(&Connection) -> Result<T>,
+{
+    tracing::debug!("[DB TX] {} - BEGIN", op);
+    let guard = DB.get().ok_or(rusqlite::Error::InvalidQuery)?.lock().unwrap();
+    guard.execute("BEGIN", [])?;
+    let result = f(&guard);
+    match &result {
+        Ok(_) => {
+            guard.execute("COMMIT", [])?;
+            tracing::debug!("[DB TX] {} - COMMIT", op);
+        }
+        Err(e) => {
+            let _ = guard.execute("ROLLBACK", []);
+            tracing::error!("[DB TX] {} - ROLLBACK: {}", op, e);
+        }
+    }
+    result
+}
+
+#[allow(dead_code)]
 pub fn with_db_mut<F, T>(f: F) -> Result<T>
 where
     F: FnOnce(&mut Connection) -> Result<T>,

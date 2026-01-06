@@ -61,6 +61,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { conversationApi } from '@/api/modules/conversation'
+import { api } from '@/api'
+import { logger } from '@/utils/logger'
 interface AppItem {
   id: string
   app?: {
@@ -152,7 +154,7 @@ async function loadInstalledApps() {
   try {
     await fetchAppsFromAPI()
   } catch (e) {
-    console.error('加载应用失败:', e)
+    logger.error('加载应用失败:', e)
   }
   loadingApps.value = false
 }
@@ -180,7 +182,7 @@ async function fetchAppsFromAPI() {
       }
     }
   } catch (e) {
-    console.error('加载应用失败:', e)
+    logger.error('加载应用失败:', e)
   }
 }
 async function toggleApp(app: AppItem) {
@@ -214,7 +216,7 @@ async function loadConversations(app: AppItem) {
       }))
     }
   } catch (e) {
-    console.error('加载对话失败:', e)
+    logger.error('加载对话失败:', e)
   }
   app.loadingConversations = false
 }
@@ -235,7 +237,7 @@ async function executeDelete() {
   confirmingDelete.value = null
   const appId = app.app?.id || app.id
   try {
-    await (window as any).go.main.App.DeleteConversation(props.token, appId, conv.id)
+    await api.conversation.delete(props.token, appId, conv.id)
     const idx = app.conversations.findIndex(c => c.id === conv.id)
     if (idx > -1) {
       app.conversations.splice(idx, 1)
@@ -246,7 +248,7 @@ async function executeDelete() {
       emit('select-conversation', { app: null as any, conversation: null as any })
     }
   } catch (e) {
-    console.error('删除对话失败:', e)
+    logger.error('删除对话失败:', e)
     emit('show-notification', { message: '删除对话失败: ' + e, type: 'error' })
   }
 }
@@ -258,7 +260,7 @@ async function refreshAll() {
     const expandedApps = installedApps.value.filter(app => app.expanded)
     await Promise.all(expandedApps.map(app => loadConversations(app)))
   } catch (e) {
-    console.error('刷新失败:', e)
+    logger.error('刷新失败:', e)
   } finally {
     refreshing.value = false
   }

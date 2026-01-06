@@ -685,46 +685,50 @@ fn sort_lines_by_position(
 }
 
 #[tauri::command]
-pub fn get_node_content(node_id: i64) -> Result<NodeContent, String> {
-    database::with_db(|conn| {
-        let path = get_node_path_internal(conn, node_id);
-        if path.is_empty() {
-            return Err(rusqlite::Error::QueryReturnedNoRows);
-        }
-        let folders = replay_folders(conn, &path);
-        let pre = replay_blocks_by_zone(conn, &path, "pre");
-        let post = replay_blocks_by_zone(conn, &path, "post");
-        let global = replay_blocks_by_zone(conn, &path, "global");
-        Ok(NodeContent {
-            node_id,
-            folders,
-            pre,
-            post,
-            global,
+pub async fn get_node_content(node_id: i64) -> Result<NodeContent, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        database::with_db_log(&format!("get_node_content: {}", node_id), |conn| {
+            let path = get_node_path_internal(conn, node_id);
+            if path.is_empty() {
+                return Err(rusqlite::Error::QueryReturnedNoRows);
+            }
+            let folders = replay_folders(conn, &path);
+            let pre = replay_blocks_by_zone(conn, &path, "pre");
+            let post = replay_blocks_by_zone(conn, &path, "post");
+            let global = replay_blocks_by_zone(conn, &path, "global");
+            Ok(NodeContent {
+                node_id,
+                folders,
+                pre,
+                post,
+                global,
+            })
         })
-    })
-    .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())
+    }).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn add_folder(node_id: i64, name: String) -> Result<i64, String> {
+pub async fn add_folder(node_id: i64, name: String) -> Result<i64, String> {
     if name.starts_with("SYS_") {
         return Err("不允许创建SYS_开头的文件夹".to_string());
     }
-    database::with_db(|conn| {
-        conn.execute("INSERT INTO wt_folder (name) VALUES (?)", [&name])?;
-        let folder_id = conn.last_insert_rowid();
-        conn.execute(
-            "INSERT INTO wt_node_change (action, level, node_id, detail_folder) VALUES ('add', 'folder', ?, ?)",
-            rusqlite::params![node_id, folder_id],
-        )?;
-        Ok(conn.last_insert_rowid())
-    })
-    .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        database::with_db_tx(&format!("add_folder: node={}", node_id), |conn| {
+            conn.execute("INSERT INTO wt_folder (name) VALUES (?)", [&name])?;
+            let folder_id = conn.last_insert_rowid();
+            conn.execute(
+                "INSERT INTO wt_node_change (action, level, node_id, detail_folder) VALUES ('add', 'folder', ?, ?)",
+                rusqlite::params![node_id, folder_id],
+            )?;
+            Ok(conn.last_insert_rowid())
+        })
+        .map_err(|e| e.to_string())
+    }).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn add_folder_with_parent(
+pub async fn add_folder_with_parent(
     node_id: i64,
     parent_change_id: Option<i64>,
     name: String,
@@ -732,20 +736,22 @@ pub fn add_folder_with_parent(
     if name.starts_with("SYS_") {
         return Err("不允许创建SYS_开头的文件夹".to_string());
     }
-    database::with_db(|conn| {
-        conn.execute("INSERT INTO wt_folder (name) VALUES (?)", [&name])?;
-        let folder_id = conn.last_insert_rowid();
-        conn.execute(
-            "INSERT INTO wt_node_change (action, level, node_id, target, detail_folder) VALUES ('add', 'folder', ?, ?, ?)",
-            rusqlite::params![node_id, parent_change_id, folder_id],
-        )?;
-        Ok(conn.last_insert_rowid())
-    })
-    .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        database::with_db_tx(&format!("add_folder_with_parent: node={}", node_id), |conn| {
+            conn.execute("INSERT INTO wt_folder (name) VALUES (?)", [&name])?;
+            let folder_id = conn.last_insert_rowid();
+            conn.execute(
+                "INSERT INTO wt_node_change (action, level, node_id, target, detail_folder) VALUES ('add', 'folder', ?, ?, ?)",
+                rusqlite::params![node_id, parent_change_id, folder_id],
+            )?;
+            Ok(conn.last_insert_rowid())
+        })
+        .map_err(|e| e.to_string())
+    }).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn add_card(
+pub async fn add_card(
     node_id: i64,
     folder_change_id: Option<i64>,
     name: String,
@@ -754,23 +760,25 @@ pub fn add_card(
     if name.starts_with("SYS_") {
         return Err("不允许创建SYS_开头的卡片".to_string());
     }
-    database::with_db(|conn| {
-        conn.execute(
-            "INSERT INTO wt_card (name, desc, key_word, trigger_system, trigger_user, trigger_ai) VALUES (?, '', ?, 0, 1, 1)",
-            rusqlite::params![name, key_word],
-        )?;
-        let card_id = conn.last_insert_rowid();
-        conn.execute(
-            "INSERT INTO wt_node_change (action, level, node_id, target, detail_card) VALUES ('add', 'card', ?, ?, ?)",
-            rusqlite::params![node_id, folder_change_id, card_id],
-        )?;
-        Ok(conn.last_insert_rowid())
-    })
-    .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        database::with_db_tx(&format!("add_card: node={}", node_id), |conn| {
+            conn.execute(
+                "INSERT INTO wt_card (name, desc, key_word, trigger_system, trigger_user, trigger_ai) VALUES (?, '', ?, 0, 1, 1)",
+                rusqlite::params![name, key_word],
+            )?;
+            let card_id = conn.last_insert_rowid();
+            conn.execute(
+                "INSERT INTO wt_node_change (action, level, node_id, target, detail_card) VALUES ('add', 'card', ?, ?, ?)",
+                rusqlite::params![node_id, folder_change_id, card_id],
+            )?;
+            Ok(conn.last_insert_rowid())
+        })
+        .map_err(|e| e.to_string())
+    }).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn add_block(
+pub async fn add_block(
     node_id: i64,
     card_change_id: Option<i64>,
     title: String,
@@ -779,42 +787,46 @@ pub fn add_block(
     if title.starts_with("SYS_") {
         return Err("不允许创建SYS_开头的区块".to_string());
     }
-    database::with_db(|conn| {
-        conn.execute(
-            "INSERT INTO wt_block (title, zone) VALUES (?, ?)",
-            [&title, &zone],
-        )?;
-        let block_id = conn.last_insert_rowid();
-        conn.execute(
-            "INSERT INTO wt_node_change (action, level, node_id, target, detail_block) VALUES ('add', 'block', ?, ?, ?)",
-            rusqlite::params![node_id, card_change_id, block_id],
-        )?;
-        Ok(conn.last_insert_rowid())
-    })
-    .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        database::with_db_tx(&format!("add_block: node={}", node_id), |conn| {
+            conn.execute(
+                "INSERT INTO wt_block (title, zone) VALUES (?, ?)",
+                [&title, &zone],
+            )?;
+            let block_id = conn.last_insert_rowid();
+            conn.execute(
+                "INSERT INTO wt_node_change (action, level, node_id, target, detail_block) VALUES ('add', 'block', ?, ?, ?)",
+                rusqlite::params![node_id, card_change_id, block_id],
+            )?;
+            Ok(conn.last_insert_rowid())
+        })
+        .map_err(|e| e.to_string())
+    }).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn add_line(
+pub async fn add_line(
     node_id: i64,
     project_id: i64,
     block_change_id: i64,
     content: String,
 ) -> Result<i64, String> {
-    database::with_db(|conn| {
-        let sn = generate_serial(conn, project_id);
-        conn.execute(
-            "INSERT INTO wt_line (sn, project_id, content, node_id) VALUES (?, ?, ?, ?)",
-            rusqlite::params![sn, project_id, content, node_id],
-        )?;
-        let line_id = conn.last_insert_rowid();
-        conn.execute(
-            "INSERT INTO wt_node_change (action, level, node_id, target, detail_line) VALUES ('add', 'line', ?, ?, ?)",
-            rusqlite::params![node_id, block_change_id, line_id],
-        )?;
-        Ok(conn.last_insert_rowid())
-    })
-    .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        database::with_db_tx(&format!("add_line: node={} block={}", node_id, block_change_id), |conn| {
+            let sn = generate_serial(conn, project_id);
+            conn.execute(
+                "INSERT INTO wt_line (sn, project_id, content, node_id) VALUES (?, ?, ?, ?)",
+                rusqlite::params![sn, project_id, content, node_id],
+            )?;
+            let line_id = conn.last_insert_rowid();
+            conn.execute(
+                "INSERT INTO wt_node_change (action, level, node_id, target, detail_line) VALUES ('add', 'line', ?, ?, ?)",
+                rusqlite::params![node_id, block_change_id, line_id],
+            )?;
+            Ok(conn.last_insert_rowid())
+        })
+        .map_err(|e| e.to_string())
+    }).await.map_err(|e| e.to_string())?
 }
 
 fn generate_serial(conn: &rusqlite::Connection, project_id: i64) -> String {
@@ -852,7 +864,7 @@ fn next_serial(sn: &str) -> String {
 
 #[tauri::command]
 pub fn update_line_content(line_id: i64, content: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("update_line_content: {}", line_id), |conn| {
         conn.execute(
             "UPDATE wt_line SET content = ? WHERE id = ?",
             rusqlite::params![content, line_id],
@@ -864,7 +876,7 @@ pub fn update_line_content(line_id: i64, content: String) -> Result<(), String> 
 
 #[tauri::command]
 pub fn update_card_key_word(card_id: i64, key_word: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("update_card_key_word: {}", card_id), |conn| {
         conn.execute(
             "UPDATE wt_card SET key_word = ? WHERE id = ?",
             rusqlite::params![key_word, card_id],
@@ -884,7 +896,7 @@ pub fn update_card_triggers(
     let ts: i32 = if trigger_system { 1 } else { 0 };
     let tu: i32 = if trigger_user { 1 } else { 0 };
     let ta: i32 = if trigger_ai { 1 } else { 0 };
-    database::with_db(|conn| {
+    database::with_db_log(&format!("update_card_triggers: {}", card_id), |conn| {
         conn.execute(
             "UPDATE wt_card SET trigger_system = ?, trigger_user = ?, trigger_ai = ? WHERE id = ?",
             rusqlite::params![ts, tu, ta, card_id],
@@ -896,7 +908,7 @@ pub fn update_card_triggers(
 
 #[tauri::command]
 pub fn update_block_title(block_id: i64, title: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("update_block_title: {}", block_id), |conn| {
         conn.execute(
             "UPDATE wt_block SET title = ? WHERE id = ?",
             rusqlite::params![title, block_id],
@@ -908,7 +920,7 @@ pub fn update_block_title(block_id: i64, title: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn delete_folder(node_id: i64, folder_change_id: i64) -> Result<i64, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_folder: node={} change={}", node_id, folder_change_id), |conn| {
         conn.execute(
             "INSERT INTO wt_node_change (action, level, node_id, target) VALUES ('del', 'folder', ?, ?)",
             rusqlite::params![node_id, folder_change_id],
@@ -920,7 +932,7 @@ pub fn delete_folder(node_id: i64, folder_change_id: i64) -> Result<i64, String>
 
 #[tauri::command]
 pub fn delete_card(node_id: i64, card_change_id: i64) -> Result<i64, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_card: node={} change={}", node_id, card_change_id), |conn| {
         conn.execute(
             "INSERT INTO wt_node_change (action, level, node_id, target) VALUES ('del', 'card', ?, ?)",
             rusqlite::params![node_id, card_change_id],
@@ -932,7 +944,7 @@ pub fn delete_card(node_id: i64, card_change_id: i64) -> Result<i64, String> {
 
 #[tauri::command]
 pub fn delete_block(node_id: i64, block_change_id: i64) -> Result<i64, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_block: node={} change={}", node_id, block_change_id), |conn| {
         conn.execute(
             "INSERT INTO wt_node_change (action, level, node_id, target) VALUES ('del', 'block', ?, ?)",
             rusqlite::params![node_id, block_change_id],
@@ -944,7 +956,7 @@ pub fn delete_block(node_id: i64, block_change_id: i64) -> Result<i64, String> {
 
 #[tauri::command]
 pub fn delete_line(node_id: i64, line_change_id: i64) -> Result<i64, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_line: node={} change={}", node_id, line_change_id), |conn| {
         conn.execute(
             "INSERT INTO wt_node_change (action, level, node_id, target) VALUES ('del', 'line', ?, ?)",
             rusqlite::params![node_id, line_change_id],
@@ -955,28 +967,73 @@ pub fn delete_line(node_id: i64, line_change_id: i64) -> Result<i64, String> {
 }
 
 #[tauri::command]
-pub fn get_node_detail(node_id: i64) -> Result<NodeDetail, String> {
-    database::with_db(|conn| {
+pub async fn get_node_detail(node_id: i64) -> Result<NodeDetail, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        database::with_db_log(&format!("get_node_detail: {}", node_id), |conn| {
         let (name, desc): (String, Option<String>) = conn.query_row(
             "SELECT name, desc FROM wt_node WHERE id = ?",
             [node_id],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )?;
+        let path = get_node_path_internal(conn, node_id);
+        let replayed_folders = replay_folders(conn, &path);
+        let mut folders: HashMap<String, crate::types::NodeDetailFolder> = HashMap::new();
+        for rf in replayed_folders {
+            let mut cards: HashMap<String, crate::types::NodeDetailCard> = HashMap::new();
+            for rc in rf.cards {
+                let mut blocks: HashMap<String, crate::types::NodeDetailBlock> = HashMap::new();
+                for rb in rc.blocks {
+                    let mut lines: HashMap<String, String> = HashMap::new();
+                    for rl in rb.lines {
+                        lines.insert(rl.sn, rl.content.unwrap_or_default());
+                    }
+                    blocks.insert(rb.change_id.to_string(), crate::types::NodeDetailBlock {
+                        title: rb.title,
+                        lines,
+                    });
+                }
+                let trigger = if !rc.key_word.is_empty() || rc.trigger_system || rc.trigger_user || rc.trigger_ai {
+                    let words: Vec<String> = rc.key_word.split('@').filter(|s| !s.is_empty()).map(|s| s.to_string()).collect();
+                    Some(crate::types::NodeDetailTrigger {
+                        mode: "or".to_string(),
+                        words,
+                        system: rc.trigger_system,
+                        user: rc.trigger_user,
+                        ai: rc.trigger_ai,
+                    })
+                } else {
+                    None
+                };
+                cards.insert(rc.change_id.to_string(), crate::types::NodeDetailCard {
+                    name: rc.name,
+                    desc: rc.desc,
+                    trigger,
+                    content: blocks,
+                    image: vec![],
+                });
+            }
+            folders.insert(rf.change_id.to_string(), crate::types::NodeDetailFolder {
+                name: rf.name,
+                cards,
+                folders: HashMap::new(),
+            });
+        }
         Ok(NodeDetail {
             node_id,
             name,
             desc: desc.unwrap_or_default(),
-            structure: HashMap::new(),
+            folders,
         })
     })
     .map_err(|e| e.to_string())
+    }).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn immediate_change(node_id: i64, change: ImmediateChange) -> Result<i64, String> {
+pub async fn immediate_change(node_id: i64, change: ImmediateChange) -> Result<i64, String> {
     match change.level.as_str() {
         "folder" => match change.action.as_str() {
-            "add" => add_folder(node_id, change.name),
+            "add" => add_folder(node_id, change.name).await,
             "del" => {
                 let target = change.target.ok_or("删除folder需要target")?;
                 delete_folder(node_id, target)
@@ -984,7 +1041,7 @@ pub fn immediate_change(node_id: i64, change: ImmediateChange) -> Result<i64, St
             _ => Err("未知的action".to_string()),
         },
         "card" => match change.action.as_str() {
-            "add" => add_card(node_id, change.target, change.name, String::new()),
+            "add" => add_card(node_id, change.target, change.name, String::new()).await,
             "del" => {
                 let target = change.target.ok_or("删除card需要target")?;
                 delete_card(node_id, target)
@@ -1007,7 +1064,7 @@ pub fn immediate_change(node_id: i64, change: ImmediateChange) -> Result<i64, St
                     ),
                     Err(_) => (change.name.clone(), "card".to_string()),
                 };
-                add_block(node_id, change.target, title, zone)
+                add_block(node_id, change.target, title, zone).await
             }
             "del" => {
                 let target = change.target.ok_or("删除block需要target")?;
@@ -1037,12 +1094,13 @@ pub struct SaveNodeChangesResult {
 }
 
 #[tauri::command]
-pub fn save_node_changes(
+pub async fn save_node_changes(
     node_id: i64,
     project_id: i64,
     changes: SaveChanges,
 ) -> Result<SaveNodeChangesResult, String> {
-    database::with_db(|conn| {
+    tauri::async_runtime::spawn_blocking(move || {
+        database::with_db_tx(&format!("save_node_changes: node={}", node_id), |conn| {
         let path = get_node_path_internal(conn, node_id);
         let mut saved_block_change_ids: Vec<i64> = Vec::new();
         for (change_id_str, block_change) in &changes.block {
@@ -1159,8 +1217,10 @@ pub fn save_node_changes(
         })
     })
     .map_err(|e| e.to_string())
+    }).await.map_err(|e| e.to_string())?
 }
 
+#[allow(dead_code)]
 struct DiffLine {
     sn: String,
     content: String,
@@ -1297,7 +1357,7 @@ fn diff_and_save_block_content(
 
 #[tauri::command]
 pub fn get_system_folder_change_ids(project_id: i64) -> Result<HashMap<String, i64>, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("get_system_folder_change_ids: {}", project_id), |conn| {
         let root_node_id: i64 = conn.query_row(
             "SELECT id FROM wt_node WHERE project_id = ? AND parent_id IS NULL",
             [project_id],

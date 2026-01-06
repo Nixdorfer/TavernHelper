@@ -20,8 +20,6 @@
 
 - -d 调试模式：该模式下会编译带有调试器的可执行文件，并且在运行时启动开发者工具，还会在sidebar中显示调试页
 
-- -r Rust/Tauri模式：该项目目前使用Wails作为程序框架，使用该flag会启动Rust版本
-
 - -m 移动端启动：这将在Android Studio模拟器中启动编译后的应用程序
 
 - -b 仅构建：这将不会编译带有调试器的dev版本，会清空bin目录后构建一个release版本的可执行程序
@@ -94,9 +92,9 @@
 
 ## 技术栈
 
-框架：Tauri v2 / Wails
+框架：Tauri v2
 
-后端：Rust / Go
+后端：Rust
 
 前端：Vue3 + TypeScript @ClaudeCode
 

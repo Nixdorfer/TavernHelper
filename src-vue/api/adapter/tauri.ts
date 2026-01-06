@@ -31,6 +31,7 @@ export const tauriAdapter = {
     updateCurrentNode: (projectName: string, nodeId: number) => callTauri('update_project_current_node', { projectName, nodeId }),
   },
   node: {
+    getProjectNodes: (projectId: number) => callTauri('get_project_nodes', { projectId }),
     createChild: (projectName: string, parentId: number, name: string) => callTauri('create_child_node', { projectName, parentId, name }),
     createBrother: (projectName: string, siblingId: number, name: string) => callTauri('create_brother_node', { projectName, siblingId, name }),
     rename: (nodeId: number, newName: string) => callTauri('rename_node', { nodeId, newName }),
@@ -100,7 +101,9 @@ export const tauriAdapter = {
   creation: {
     getLocalCreations: () => callTauri('get_local_creations'),
     getLocalCreationConfig: (folderName: string) => callTauri('get_local_creation_config', { folderName }),
+    getLocalCreationByRemoteId: (remoteId: string) => callTauri('get_local_creation_by_remote_id', { remoteId }),
     saveLocalCreation: (folderName: string, config: any) => callTauri('save_local_creation', { folderName, config }),
+    saveLocalCreationPage: (folderName: string, pageName: string, content: string) => callTauri('save_local_creation_page', { folderName, pageName, content }),
     deleteLocalCreation: (folderName: string) => callTauri('delete_local_creation', { folderName }),
     fetchWithAuth: (token: string, url: string, method: string, body?: string) => callTauri('fetch_with_auth', { token, url, method, body }),
     sendTestChat: (request: any) => callTauri('send_test_chat', { request }),
@@ -108,7 +111,9 @@ export const tauriAdapter = {
   system: {
     hideWindow: () => callTauri('hide_window'),
     showWindow: () => callTauri('show_window'),
-    isDebugMode: () => callTauri('is_debug_mode'),
+    isDebugMode: () => callTauri<boolean>('is_debug_mode'),
+    isLogEnabled: () => callTauri<boolean>('is_log_enabled'),
+    writeVueLog: (level: string, message: string) => callTauri('write_vue_log', { level, message }),
     openFileDialog: (title: string, filters: [string, string[]][]) => callTauri('open_file_dialog', { title, filters }),
     saveFileDialog: (title: string, defaultName: string, filters: [string, string[]][]) => callTauri('save_file_dialog', { title, defaultName, filters }),
   },

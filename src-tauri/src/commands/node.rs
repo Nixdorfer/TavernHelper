@@ -1,10 +1,34 @@
 use crate::database;
-use crate::types::WTNode;
+use crate::types::{NodeInfo, WTNode};
 const SERIAL_CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 #[tauri::command]
+pub fn get_project_nodes(project_id: i64) -> Result<Vec<NodeInfo>, String> {
+    database::with_db_log(&format!("get_project_nodes: {}", project_id), |conn| {
+        let mut stmt = conn.prepare(
+            "SELECT id, parent_id, name, COALESCE(desc, '') FROM wt_node WHERE project_id = ? ORDER BY id"
+        )?;
+        let nodes = stmt.query_map([project_id], |row| {
+            Ok(NodeInfo {
+                id: row.get(0)?,
+                parent_id: row.get(1)?,
+                name: row.get(2)?,
+                note: row.get(3)?,
+                tags: vec![],
+                created_at: String::new(),
+                pre_text: vec![],
+                post_text: vec![],
+                pre_prompt: vec![],
+                world_book: vec![],
+            })
+        })?;
+        nodes.collect::<Result<Vec<_>, _>>()
+    }).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn create_child_node(project_name: String, parent_id: i64, name: String) -> Result<WTNode, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("create_child_node: parent={}", parent_id), |conn| {
         let project_id: i64 = conn.query_row(
             "SELECT id FROM wt_project WHERE name = ?",
             [&project_name],
@@ -27,7 +51,7 @@ pub fn create_child_node(project_name: String, parent_id: i64, name: String) -> 
 
 #[tauri::command]
 pub fn create_brother_node(project_name: String, sibling_id: i64, name: String) -> Result<WTNode, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("create_brother_node: sibling={}", sibling_id), |conn| {
         let (project_id, parent_id): (i64, Option<i64>) = conn.query_row(
             "SELECT project_id, parent_id FROM wt_node WHERE id = ?",
             [sibling_id],
@@ -55,7 +79,7 @@ pub fn create_brother_node(project_name: String, sibling_id: i64, name: String) 
 
 #[tauri::command]
 pub fn rename_node(node_id: i64, new_name: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("rename_node: {}", node_id), |conn| {
         conn.execute(
             "UPDATE wt_node SET name = ? WHERE id = ?",
             rusqlite::params![new_name, node_id],
@@ -66,7 +90,7 @@ pub fn rename_node(node_id: i64, new_name: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn update_node_note(_project_name: String, node_id: i64, note: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("update_node_note: {}", node_id), |conn| {
         conn.execute(
             "UPDATE wt_node SET desc = ? WHERE id = ?",
             rusqlite::params![note, node_id],
@@ -77,7 +101,7 @@ pub fn update_node_note(_project_name: String, node_id: i64, note: String) -> Re
 
 #[tauri::command]
 pub fn update_node_desc(node_id: i64, desc: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("update_node_desc: {}", node_id), |conn| {
         conn.execute(
             "UPDATE wt_node SET desc = ? WHERE id = ?",
             rusqlite::params![desc, node_id],
@@ -88,7 +112,7 @@ pub fn update_node_desc(node_id: i64, desc: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn delete_node(_project_name: String, node_id: i64) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_node: {}", node_id), |conn| {
         conn.execute("DELETE FROM wt_node WHERE id = ?", [node_id])?;
         Ok(())
     }).map_err(|e| e.to_string())
@@ -96,7 +120,7 @@ pub fn delete_node(_project_name: String, node_id: i64) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_node_path(node_id: i64) -> Result<Vec<i64>, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("get_node_path: {}", node_id), |conn| {
         let mut path = Vec::new();
         let mut current = node_id;
         loop {
@@ -117,7 +141,7 @@ pub fn get_node_path(node_id: i64) -> Result<Vec<i64>, String> {
 
 #[tauri::command]
 pub fn rebase_node(node_id: i64, new_parent_id: Option<i64>) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("rebase_node: {} -> {:?}", node_id, new_parent_id), |conn| {
         if let Some(new_pid) = new_parent_id {
             let mut current = new_pid;
             loop {
@@ -150,7 +174,7 @@ pub fn rebase_node(node_id: i64, new_parent_id: Option<i64>) -> Result<(), Strin
 
 #[tauri::command]
 pub fn get_branch_tag(parent_id: i64, child_id: i64) -> Result<Option<crate::types::WTBranchTag>, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("get_branch_tag: {} -> {}", parent_id, child_id), |conn| {
         let result = conn.query_row(
             "SELECT id, parent_id, child_id, name, COALESCE(desc, '') FROM wt_branch_tag WHERE parent_id = ? AND child_id = ?",
             rusqlite::params![parent_id, child_id],
@@ -172,7 +196,7 @@ pub fn get_branch_tag(parent_id: i64, child_id: i64) -> Result<Option<crate::typ
 
 #[tauri::command]
 pub fn set_branch_tag(parent_id: i64, child_id: i64, name: String, desc: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("set_branch_tag: {} -> {}", parent_id, child_id), |conn| {
         conn.execute(
             "INSERT INTO wt_branch_tag (parent_id, child_id, name, desc) VALUES (?, ?, ?, ?) ON CONFLICT(parent_id, child_id) DO UPDATE SET name = excluded.name, desc = excluded.desc",
             rusqlite::params![parent_id, child_id, name, desc],
@@ -183,7 +207,7 @@ pub fn set_branch_tag(parent_id: i64, child_id: i64, name: String, desc: String)
 
 #[tauri::command]
 pub fn delete_branch_tag(parent_id: i64, child_id: i64) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_branch_tag: {} -> {}", parent_id, child_id), |conn| {
         conn.execute(
             "DELETE FROM wt_branch_tag WHERE parent_id = ? AND child_id = ?",
             rusqlite::params![parent_id, child_id],
@@ -194,7 +218,7 @@ pub fn delete_branch_tag(parent_id: i64, child_id: i64) -> Result<(), String> {
 
 #[tauri::command]
 pub fn update_node_by_id(node_id: i64, name: String, desc: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("update_node_by_id: {}", node_id), |conn| {
         conn.execute(
             "UPDATE wt_node SET name = ?, desc = ? WHERE id = ?",
             rusqlite::params![name, desc, node_id],
@@ -214,7 +238,7 @@ pub fn update_node(_project_name: String, node_data: serde_json::Value) -> Resul
     let desc = node_data.get("note")
         .and_then(|v| v.as_str())
         .unwrap_or("");
-    database::with_db(|conn| {
+    database::with_db_log(&format!("update_node: {}", node_id), |conn| {
         conn.execute(
             "UPDATE wt_node SET name = ?, desc = ? WHERE id = ?",
             rusqlite::params![name, desc, node_id],
@@ -243,7 +267,7 @@ fn next_serial_str(sn: &str) -> String {
 
 #[tauri::command]
 pub fn generate_line_serial(project_name: String) -> Result<String, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("generate_line_serial: {}", project_name), |conn| {
         let project_id: Option<i64> = conn.query_row(
             "SELECT id FROM wt_project WHERE name = ?",
             [&project_name],

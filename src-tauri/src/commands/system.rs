@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
+use crate::logger;
 
 #[tauri::command]
 pub fn hide_window(app: tauri::AppHandle) -> Result<(), String> {
@@ -110,4 +111,14 @@ pub fn is_caps_lock_on() -> bool {
 #[tauri::command]
 pub fn is_caps_lock_on() -> bool {
     false
+}
+
+#[tauri::command]
+pub fn is_log_enabled() -> bool {
+    logger::is_enabled()
+}
+
+#[tauri::command]
+pub fn write_vue_log(level: String, message: String) {
+    logger::write_vue_log(&level, &message);
 }

@@ -20,8 +20,6 @@ Führen Sie Run.cmd mit den folgenden verfügbaren Parametern aus:
 
 - -d Debug-Modus: Kompiliert eine ausführbare Datei mit Debugger, startet Entwicklertools zur Laufzeit und zeigt eine Debug-Seite in der Seitenleiste an
 
-- -r Rust/Tauri-Modus: Dieses Projekt verwendet derzeit Wails als Programm-Framework. Dieses Flag startet die Rust-Version
-
 - -m Mobiler Start: Dies startet die kompilierte Anwendung im Android Studio-Emulator
 
 - -b Nur Build: Dies kompiliert keine Dev-Version mit Debugger. Es leert das bin-Verzeichnis und erstellt eine Release-Version der ausführbaren Datei
@@ -56,9 +54,9 @@ Dieser Haftungsausschluss gilt nur für die [Haupt-Open-Source-Version](https://
 
 ## Technologie-Stack
 
-Framework: Tauri v2 / Wails
+Framework: Tauri v2
 
-Backend: Rust / Go
+Backend: Rust
 
 Frontend: Vue3 + TypeScript @ClaudeCode
 

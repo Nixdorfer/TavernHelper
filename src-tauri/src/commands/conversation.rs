@@ -1,39 +1,3 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Conversation {
-    pub id: String,
-    pub name: String,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConversationList {
-    pub conversations: Vec<Conversation>,
-    pub total: i64,
-    pub page: i64,
-    pub limit: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConversationDetail {
-    pub id: String,
-    pub name: String,
-    pub messages: Vec<Message>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Message {
-    pub role: String,
-    pub content: String,
-    #[serde(default)]
-    pub timestamp: String,
-}
-
 fn build_request(client: &reqwest::Client, method: reqwest::Method, url: &str, token: &str) -> reqwest::RequestBuilder {
     client.request(method, url)
         .header("Content-Type", "application/json")

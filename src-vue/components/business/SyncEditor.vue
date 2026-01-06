@@ -40,6 +40,7 @@
 </template>
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { logger } from '@/utils/logger'
 interface LineInfo {
   sn: string
   content: string
@@ -108,7 +109,7 @@ async function copySerial(sn: string) {
     await navigator.clipboard.writeText(sn)
     emit('copy-serial', sn)
   } catch (err) {
-    console.error('复制失败:', err)
+    logger.error('复制失败:', err)
   }
 }
 function handleInput(e: Event) {

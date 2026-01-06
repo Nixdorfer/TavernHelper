@@ -121,6 +121,7 @@ import { ref, computed, onMounted, onBeforeUnmount, reactive } from 'vue'
 import { useDraftsStore, useNotificationStore, useConfirmStore } from '@/stores'
 import { draftsApi, type ClipboardCapture } from '@/api/modules/drafts'
 import type { Draft } from '@/types'
+import { logger } from '@/utils/logger'
 interface DraftTreeItem extends Draft {
   children?: DraftTreeItem[]
 }
@@ -181,7 +182,7 @@ async function loadClipboardCaptures() {
     const result = await draftsApi.getClipboard()
     clipboardCaptures.value = result || []
   } catch (e) {
-    console.error('加载剪贴板捕获失败:', e)
+    logger.error('加载剪贴板捕获失败:', e)
     clipboardCaptures.value = []
   }
 }
@@ -292,7 +293,7 @@ async function saveDraft() {
       }
     }
   } catch (e: any) {
-    console.error('保存草稿失败:', e)
+    logger.error('保存草稿失败:', e)
     notificationStore.showNotification('保存失败: ' + e.message, 'error')
   }
 }
@@ -302,7 +303,7 @@ async function saveDraftAndCopy() {
     await draftsApi.copyToClipboard(draftEditorContent.value)
     notificationStore.showNotification('已保存并复制到剪贴板', 'success')
   } catch (e: any) {
-    console.error('复制到剪贴板失败:', e)
+    logger.error('复制到剪贴板失败:', e)
     notificationStore.showNotification('复制失败: ' + e.message, 'error')
   }
 }
@@ -326,7 +327,7 @@ async function confirmRenameDraft(item: Draft, newName: string) {
     }
     notificationStore.showNotification('重命名成功', 'success')
   } catch (e: any) {
-    console.error('重命名失败:', e)
+    logger.error('重命名失败:', e)
     notificationStore.showNotification('重命名失败: ' + e.message, 'error')
   }
 }
@@ -343,7 +344,7 @@ async function deleteDraftItem(item: Draft) {
     }
     notificationStore.showNotification('已删除', 'success')
   } catch (e: any) {
-    console.error('删除失败:', e)
+    logger.error('删除失败:', e)
     const msg = e?.message || String(e) || '未知错误'
     notificationStore.showNotification('删除失败: ' + msg, 'error')
   }
@@ -360,7 +361,7 @@ async function saveClipboardToDraft(capture: ClipboardCapture) {
       notificationStore.showNotification('已保存到草稿', 'success')
     }
   } catch (e: any) {
-    console.error('保存到草稿失败:', e)
+    logger.error('保存到草稿失败:', e)
     notificationStore.showNotification('保存失败: ' + e.message, 'error')
   }
 }
@@ -372,7 +373,7 @@ async function toggleClipboardMonitor() {
       await draftsApi.stopClipboardMonitor()
     }
   } catch (e) {
-    console.error('切换剪贴板监听失败:', e)
+    logger.error('切换剪贴板监听失败:', e)
   }
 }
 function handleClipboardCaptured(capture: ClipboardCapture) {
@@ -428,7 +429,7 @@ async function onDraftDrop(event: DragEvent, folder: Draft) {
     await draftsStore.updateDraft(updated)
     notificationStore.showNotification('已移动到文件夹', 'success')
   } catch (e: any) {
-    console.error('移动草稿失败:', e)
+    logger.error('移动草稿失败:', e)
     notificationStore.showNotification('移动失败: ' + e.message, 'error')
   }
   draggingDraft.value = null
@@ -456,7 +457,7 @@ async function clearAllClipboardCaptures() {
     }
     notificationStore.showNotification('已清空剪贴板', 'success')
   } catch (e: any) {
-    console.error('清空剪贴板失败:', e)
+    logger.error('清空剪贴板失败:', e)
     notificationStore.showNotification('清空失败: ' + e.message, 'error')
   }
 }

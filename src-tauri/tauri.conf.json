@@ -10,12 +10,12 @@
   "build": {
     "beforeDevCommand": {
       "cwd": "../src-vue",
-      "script": "set VITE_BACKEND=tauri && npm run dev"
+      "script": "npm run dev"
     },
     "devUrl": "http://localhost:5173",
     "beforeBuildCommand": {
       "cwd": "../src-vue",
-      "script": "set VITE_BACKEND=tauri && npm run build"
+      "script": "npm run build"
     },
     "frontendDist": "../src-vue/dist/pc"
   },

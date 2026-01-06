@@ -1,5 +1,6 @@
 # 参考项
-Reference/
+.ref/
+src-wails/
 *.har
 
 # IDE 和工具
@@ -19,10 +20,6 @@ dist/
 *.lib
 *.apk
 
-# Wails
-src-wails/build/bin/
-src-wails/dist/
-
 # Rust/Tauri
 src-tauri/target/
 src-tauri/gen/
@@ -31,9 +28,9 @@ src-tauri/.cargo/
 
 # Vue/Node
 src-vue/node_modules/
-src-vue/wailsjs/
 
 # 日志和临时文件
+runtime/
 *.log
 *.tmp
 *.db

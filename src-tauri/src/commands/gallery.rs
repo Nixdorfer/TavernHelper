@@ -15,7 +15,7 @@ fn get_gallery_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 
 #[tauri::command]
 pub fn get_gallery_images() -> Result<Vec<GalleryImage>, String> {
-    database::with_db(|conn| {
+    database::with_db_log("get_gallery_images", |conn| {
         let mut stmt = conn.prepare(
             "SELECT id, hash, local_path, remote_url, file_name, file_size, created_at, folder_path FROM wt_image ORDER BY created_at DESC"
         )?;
@@ -37,7 +37,7 @@ pub fn get_gallery_images() -> Result<Vec<GalleryImage>, String> {
 
 #[tauri::command]
 pub fn get_gallery_folders() -> Result<Vec<GalleryFolder>, String> {
-    database::with_db(|conn| {
+    database::with_db_log("get_gallery_folders", |conn| {
         let mut stmt = conn.prepare(
             "SELECT folder_path, COUNT(*) as count FROM wt_image WHERE folder_path != '' GROUP BY folder_path"
         )?;
@@ -64,7 +64,7 @@ pub fn create_gallery_folder(name: String) -> Result<GalleryFolder, String> {
 
 #[tauri::command]
 pub fn delete_gallery_folder(name: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_gallery_folder: {}", name), |conn| {
         conn.execute(
             "UPDATE wt_image SET folder_path = '' WHERE folder_path = ?",
             [&name],
@@ -75,7 +75,7 @@ pub fn delete_gallery_folder(name: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn delete_gallery_image(app: tauri::AppHandle, id: String) -> Result<(), String> {
-    let local_path: String = database::with_db(|conn| {
+    let local_path: String = database::with_db_log(&format!("get_image_path: {}", id), |conn| {
         conn.query_row(
             "SELECT local_path FROM wt_image WHERE id = ?",
             [&id],
@@ -87,7 +87,7 @@ pub fn delete_gallery_image(app: tauri::AppHandle, id: String) -> Result<(), Str
     if file_path.exists() {
         fs::remove_file(file_path).map_err(|e| e.to_string())?;
     }
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_gallery_image: {}", id), |conn| {
         conn.execute("DELETE FROM wt_image WHERE id = ?", [&id])?;
         Ok(())
     }).map_err(|e| e.to_string())
@@ -103,7 +103,7 @@ pub fn delete_gallery_images(app: tauri::AppHandle, ids: Vec<String>) -> Result<
 
 #[tauri::command]
 pub fn move_gallery_image_to_folder(image_id: String, folder_path: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("move_gallery_image: {}", image_id), |conn| {
         conn.execute(
             "UPDATE wt_image SET folder_path = ? WHERE id = ?",
             [&folder_path, &image_id],
@@ -114,7 +114,7 @@ pub fn move_gallery_image_to_folder(image_id: String, folder_path: String) -> Re
 
 #[tauri::command]
 pub fn read_gallery_image_as_base64(app: tauri::AppHandle, id: String) -> Result<String, String> {
-    let local_path: String = database::with_db(|conn| {
+    let local_path: String = database::with_db_log(&format!("get_image_path: {}", id), |conn| {
         conn.query_row(
             "SELECT local_path FROM wt_image WHERE id = ?",
             [&id],
@@ -178,7 +178,7 @@ fn add_image_internal(app: tauri::AppHandle, data: Vec<u8>, file_name: String, f
     let mut hasher = Sha256::new();
     hasher.update(&data);
     let hash = format!("{:x}", hasher.finalize());
-    let existing: Option<String> = database::with_db(|conn| {
+    let existing: Option<String> = database::with_db_log("check_image_exists", |conn| {
         Ok(conn.query_row(
             "SELECT id FROM wt_image WHERE hash = ?",
             [&hash],
@@ -199,7 +199,7 @@ fn add_image_internal(app: tauri::AppHandle, data: Vec<u8>, file_name: String, f
     fs::write(&full_path, &data).map_err(|e| e.to_string())?;
     let now = Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
     let file_size = data.len() as i64;
-    database::with_db(|conn| {
+    database::with_db_log(&format!("add_gallery_image: {}", id), |conn| {
         conn.execute(
             "INSERT INTO wt_image (id, hash, local_path, file_name, file_size, created_at, folder_path) VALUES (?, ?, ?, ?, ?, ?, ?)",
             rusqlite::params![id, hash, local_path, file_name, file_size, now, folder_path],
@@ -220,7 +220,7 @@ fn add_image_internal(app: tauri::AppHandle, data: Vec<u8>, file_name: String, f
 
 #[tauri::command]
 pub fn rename_gallery_image(id: String, new_name: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("rename_gallery_image: {}", id), |conn| {
         conn.execute(
             "UPDATE wt_image SET file_name = ? WHERE id = ?",
             [&new_name, &id],
@@ -231,7 +231,7 @@ pub fn rename_gallery_image(id: String, new_name: String) -> Result<(), String> 
 
 #[tauri::command]
 pub fn rename_gallery_folder(old_name: String, new_name: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("rename_gallery_folder: {}", old_name), |conn| {
         conn.execute(
             "UPDATE wt_image SET folder_path = ? WHERE folder_path = ?",
             [&new_name, &old_name],
@@ -242,7 +242,7 @@ pub fn rename_gallery_folder(old_name: String, new_name: String) -> Result<(), S
 
 #[tauri::command]
 pub fn update_gallery_image_url(id: String, url: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("update_gallery_image_url: {}", id), |conn| {
         conn.execute(
             "UPDATE wt_image SET remote_url = ? WHERE id = ?",
             [&url, &id],

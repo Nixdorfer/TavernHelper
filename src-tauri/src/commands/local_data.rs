@@ -4,7 +4,7 @@ use chrono::Utc;
 
 #[tauri::command]
 pub fn get_apps() -> Result<Vec<WTApp>, String> {
-    database::with_db(|conn| {
+    database::with_db_log("get_apps", |conn| {
         let mut stmt = conn.prepare("SELECT id, name FROM wt_app ORDER BY id")?;
         let apps = stmt.query_map([], |row| {
             Ok(WTApp {
@@ -18,7 +18,7 @@ pub fn get_apps() -> Result<Vec<WTApp>, String> {
 
 #[tauri::command]
 pub fn create_app(name: String) -> Result<i64, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("create_app: {}", name), |conn| {
         conn.execute("INSERT INTO wt_app (name) VALUES (?)", [&name])?;
         Ok(conn.last_insert_rowid())
     }).map_err(|e| e.to_string())
@@ -26,7 +26,7 @@ pub fn create_app(name: String) -> Result<i64, String> {
 
 #[tauri::command]
 pub fn delete_app(app_id: i64) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_app: {}", app_id), |conn| {
         conn.execute("DELETE FROM wt_app WHERE id = ?", [app_id])?;
         Ok(())
     }).map_err(|e| e.to_string())
@@ -34,7 +34,7 @@ pub fn delete_app(app_id: i64) -> Result<(), String> {
 
 #[tauri::command]
 pub fn rename_app(app_id: i64, new_name: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("rename_app: {}", app_id), |conn| {
         conn.execute("UPDATE wt_app SET name = ? WHERE id = ?", rusqlite::params![new_name, app_id])?;
         Ok(())
     }).map_err(|e| e.to_string())
@@ -42,7 +42,7 @@ pub fn rename_app(app_id: i64, new_name: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_local_conversations(app_id: i64) -> Result<Vec<WTConversation>, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("get_local_conversations: {}", app_id), |conn| {
         let mut stmt = conn.prepare("SELECT id, app_id, name, current_node FROM wt_conversation WHERE app_id = ? ORDER BY id DESC")?;
         let conversations = stmt.query_map([app_id], |row| {
             Ok(WTConversation {
@@ -58,7 +58,7 @@ pub fn get_local_conversations(app_id: i64) -> Result<Vec<WTConversation>, Strin
 
 #[tauri::command]
 pub fn create_local_conversation(app_id: i64, name: String) -> Result<i64, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("create_local_conversation: app={}", app_id), |conn| {
         conn.execute("INSERT INTO wt_conversation (app_id, name) VALUES (?, ?)", rusqlite::params![app_id, name])?;
         Ok(conn.last_insert_rowid())
     }).map_err(|e| e.to_string())
@@ -66,7 +66,7 @@ pub fn create_local_conversation(app_id: i64, name: String) -> Result<i64, Strin
 
 #[tauri::command]
 pub fn delete_local_conversation(conversation_id: i64) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_local_conversation: {}", conversation_id), |conn| {
         conn.execute("DELETE FROM wt_conversation WHERE id = ?", [conversation_id])?;
         Ok(())
     }).map_err(|e| e.to_string())
@@ -74,7 +74,7 @@ pub fn delete_local_conversation(conversation_id: i64) -> Result<(), String> {
 
 #[tauri::command]
 pub fn rename_local_conversation(conversation_id: i64, new_name: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("rename_local_conversation: {}", conversation_id), |conn| {
         conn.execute("UPDATE wt_conversation SET name = ? WHERE id = ?", rusqlite::params![new_name, conversation_id])?;
         Ok(())
     }).map_err(|e| e.to_string())
@@ -82,7 +82,7 @@ pub fn rename_local_conversation(conversation_id: i64, new_name: String) -> Resu
 
 #[tauri::command]
 pub fn set_conversation_node(conversation_id: i64, node_id: Option<i64>) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("set_conversation_node: {}", conversation_id), |conn| {
         match node_id {
             Some(nid) => conn.execute("UPDATE wt_conversation SET current_node = ? WHERE id = ?", rusqlite::params![nid, conversation_id])?,
             None => conn.execute("UPDATE wt_conversation SET current_node = NULL WHERE id = ?", [conversation_id])?,
@@ -93,7 +93,7 @@ pub fn set_conversation_node(conversation_id: i64, node_id: Option<i64>) -> Resu
 
 #[tauri::command]
 pub fn get_conversation_node(conversation_id: i64) -> Result<Option<i64>, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("get_conversation_node: {}", conversation_id), |conn| {
         conn.query_row(
             "SELECT current_node FROM wt_conversation WHERE id = ?",
             [conversation_id],
@@ -104,7 +104,7 @@ pub fn get_conversation_node(conversation_id: i64) -> Result<Option<i64>, String
 
 #[tauri::command]
 pub fn get_dialogues(conversation_id: i64, page: i64, limit: i64) -> Result<DialoguesResult, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("get_dialogues: conv={}", conversation_id), |conn| {
         let total: i64 = conn.query_row(
             "SELECT COUNT(*) FROM wt_dialogue WHERE conversation_id = ?",
             [conversation_id],
@@ -140,7 +140,7 @@ pub fn get_dialogues(conversation_id: i64, page: i64, limit: i64) -> Result<Dial
 #[tauri::command]
 pub fn create_dialogue(conversation_id: i64, request_content: String, response_content: String) -> Result<i64, String> {
     let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    database::with_db(|conn| {
+    database::with_db_log(&format!("create_dialogue: conv={}", conversation_id), |conn| {
         conn.execute(
             "INSERT INTO wt_dialogue (conversation_id, create_time, request_content, response_content) VALUES (?, ?, ?, ?)",
             rusqlite::params![conversation_id, now, request_content, response_content],
@@ -151,7 +151,7 @@ pub fn create_dialogue(conversation_id: i64, request_content: String, response_c
 
 #[tauri::command]
 pub fn update_dialogue(dialogue_id: i64, request_content: String, response_content: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("update_dialogue: {}", dialogue_id), |conn| {
         conn.execute(
             "UPDATE wt_dialogue SET request_content = ?, response_content = ? WHERE id = ?",
             rusqlite::params![request_content, response_content, dialogue_id],
@@ -162,7 +162,7 @@ pub fn update_dialogue(dialogue_id: i64, request_content: String, response_conte
 
 #[tauri::command]
 pub fn delete_dialogue(dialogue_id: i64) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_dialogue: {}", dialogue_id), |conn| {
         conn.execute("DELETE FROM wt_dialogue WHERE id = ?", [dialogue_id])?;
         Ok(())
     }).map_err(|e| e.to_string())
@@ -170,7 +170,7 @@ pub fn delete_dialogue(dialogue_id: i64) -> Result<(), String> {
 
 #[tauri::command]
 pub fn add_dialogue_image(dialogue_id: i64, image_url: String, image_path: String, prompt: String) -> Result<i64, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("add_dialogue_image: {}", dialogue_id), |conn| {
         conn.execute(
             "INSERT INTO wt_dialogue_image (dialogue_id, image_url, image_path, prompt) VALUES (?, ?, ?, ?)",
             rusqlite::params![dialogue_id, image_url, image_path, prompt],
@@ -181,7 +181,7 @@ pub fn add_dialogue_image(dialogue_id: i64, image_url: String, image_path: Strin
 
 #[tauri::command]
 pub fn get_dialogue_images(dialogue_id: i64) -> Result<Vec<WTDialogueImage>, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("get_dialogue_images: {}", dialogue_id), |conn| {
         let mut stmt = conn.prepare(
             "SELECT id, dialogue_id, COALESCE(image_url, ''), COALESCE(image_path, ''), prompt FROM wt_dialogue_image WHERE dialogue_id = ?"
         )?;

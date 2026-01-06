@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -118,8 +120,7 @@ pub struct NodeDetail {
     pub name: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub desc: String,
-    #[serde(rename = "struct")]
-    pub structure: HashMap<String, NodeDetailFolder>,
+    pub folders: HashMap<String, NodeDetailFolder>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

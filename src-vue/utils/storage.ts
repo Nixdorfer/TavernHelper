@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 const PREFIX = 'tavern_'
 
 export function getItem<T = any>(key: string, defaultValue?: T): T | null {
@@ -14,7 +15,7 @@ export function setItem(key: string, value: any): void {
   try {
     localStorage.setItem(PREFIX + key, JSON.stringify(value))
   } catch (e) {
-    console.error('Failed to save to localStorage:', e)
+    logger.error('Failed to save to localStorage:', e)
   }
 }
 
@@ -45,7 +46,7 @@ export function setSessionItem(key: string, value: any): void {
   try {
     sessionStorage.setItem(PREFIX + key, JSON.stringify(value))
   } catch (e) {
-    console.error('Failed to save to sessionStorage:', e)
+    logger.error('Failed to save to sessionStorage:', e)
   }
 }
 

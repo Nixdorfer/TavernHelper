@@ -63,6 +63,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { galleryApi } from '@/api'
+import { logger } from '@/utils/logger'
 interface GalleryImage {
   id: string
   fileName: string
@@ -93,7 +94,7 @@ async function loadImages() {
       }
     }
   } catch (err) {
-    console.error('加载图库失败:', err)
+    logger.error('加载图库失败:', err)
   } finally {
     loading.value = false
   }
@@ -103,7 +104,7 @@ async function loadImageBase64(img: GalleryImage) {
     const base64 = await galleryApi.readImageAsBase64(img.id)
     imageCache[img.id] = base64
   } catch (err) {
-    console.error('加载图片失败:', img.id, err)
+    logger.error('加载图片失败:', img.id, err)
   }
 }
 function getImageSrc(img: GalleryImage): string {
@@ -138,7 +139,7 @@ async function openFilePicker() {
       selectedImage.value = result
     }
   } catch (err) {
-    console.error('添加图片失败:', err)
+    logger.error('添加图片失败:', err)
   }
 }
 function confirm() {
@@ -191,7 +192,7 @@ async function addImageFromFile(file: File) {
       selectedImage.value = result
     }
   } catch (err) {
-    console.error('添加图片失败:', err)
+    logger.error('添加图片失败:', err)
   }
 }
 function handleKeydown(e: KeyboardEvent) {

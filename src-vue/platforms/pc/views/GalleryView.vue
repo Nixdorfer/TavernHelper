@@ -213,6 +213,7 @@ import { ref, computed, onMounted, nextTick, reactive } from 'vue'
 import { useAuthStore, useNotificationStore, useGalleryStore, useConfirmStore } from '@/stores'
 import { galleryApi } from '@/api/modules/gallery'
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu.vue'
+import { logger } from '@/utils/logger'
 interface GalleryImage {
   id: string
   fileName: string
@@ -295,7 +296,7 @@ async function loadData() {
       }
     }
   } catch (err) {
-    console.error('加载图库失败:', err)
+    logger.error('加载图库失败:', err)
   } finally {
     loading.value = false
   }
@@ -305,7 +306,7 @@ async function loadImageBase64(img: GalleryImage) {
     const base64 = await galleryApi.readImageAsBase64(img.id)
     imageCache[img.id] = base64
   } catch (err) {
-    console.error('加载图片失败:', img.id, err)
+    logger.error('加载图片失败:', img.id, err)
   }
 }
 function getImageSrc(img: GalleryImage): string {
@@ -367,7 +368,7 @@ async function onDropToFolder(e: DragEvent, folderName: string) {
     }
     notificationStore.showNotification('移动成功', 'success')
   } catch (err) {
-    console.error('移动图片失败:', err)
+    logger.error('移动图片失败:', err)
     notificationStore.showNotification('移动失败', 'error')
   }
 }
@@ -391,7 +392,7 @@ async function onDropToBreadcrumb(e: DragEvent, folderPath: string) {
     }
     notificationStore.showNotification('移动成功', 'success')
   } catch (err) {
-    console.error('移动图片失败:', err)
+    logger.error('移动图片失败:', err)
     notificationStore.showNotification('移动失败', 'error')
   }
 }
@@ -405,7 +406,7 @@ async function savePreviewImageName() {
     const img = images.value.find(i => i.id === previewImage.value!.id)
     if (img) img.fileName = previewImage.value.fileName
   } catch (err) {
-    console.error('重命名失败:', err)
+    logger.error('重命名失败:', err)
   }
 }
 async function copyText(text: string) {
@@ -429,7 +430,7 @@ async function addImage() {
       loadImageBase64(result)
     }
   } catch (err) {
-    console.error('添加图片失败:', err)
+    logger.error('添加图片失败:', err)
   }
 }
 async function deleteSelectedImages() {
@@ -450,7 +451,7 @@ async function deleteSelectedImages() {
     selectedImages.value = []
     notificationStore.showNotification('删除成功', 'success')
   } catch (err) {
-    console.error('删除图片失败:', err)
+    logger.error('删除图片失败:', err)
     notificationStore.showNotification('删除失败', 'error')
   }
 }
@@ -465,7 +466,7 @@ async function deleteSingleImage(id: string) {
     previewImage.value = null
     notificationStore.showNotification('删除成功', 'success')
   } catch (err) {
-    console.error('删除图片失败:', err)
+    logger.error('删除图片失败:', err)
     notificationStore.showNotification('删除失败', 'error')
   }
 }
@@ -490,7 +491,7 @@ async function confirmCreateFolder() {
     folders.value.push({ name: newFolderName.value.trim(), path: newFolderName.value.trim(), createdAt: new Date().toISOString() })
     notificationStore.showNotification('文件夹创建成功', 'success')
   } catch (err) {
-    console.error('创建文件夹失败:', err)
+    logger.error('创建文件夹失败:', err)
     notificationStore.showNotification('创建文件夹失败', 'error')
   }
   showCreateFolderModal.value = false
@@ -539,7 +540,7 @@ async function finishRenamingFolder() {
       }
     })
   } catch (err) {
-    console.error('重命名文件夹失败:', err)
+    logger.error('重命名文件夹失败:', err)
     notificationStore.showNotification('重命名文件夹失败', 'error')
   }
   renamingFolder.value = null
@@ -581,7 +582,7 @@ async function finishRenamingImage() {
     const img = images.value.find(i => i.id === renamingImage.value)
     if (img) img.fileName = newName
   } catch (err) {
-    console.error('重命名图片失败:', err)
+    logger.error('重命名图片失败:', err)
     notificationStore.showNotification('重命名图片失败', 'error')
   }
   renamingImage.value = null
@@ -638,7 +639,7 @@ async function handleGalleryDrop(e: DragEvent) {
         loadImageBase64(result)
       }
     } catch (err) {
-      console.error('添加图片失败:', err)
+      logger.error('添加图片失败:', err)
     }
   }
 }
@@ -711,7 +712,7 @@ async function deleteFolder(name: string) {
     images.value = images.value.filter(img => img.folderPath !== name)
     notificationStore.showNotification('删除成功', 'success')
   } catch (err) {
-    console.error('删除文件夹失败:', err)
+    logger.error('删除文件夹失败:', err)
     notificationStore.showNotification('删除失败', 'error')
   }
 }

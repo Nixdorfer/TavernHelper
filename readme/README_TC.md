@@ -20,8 +20,6 @@
 
 - -d 除錯模式：該模式下會編譯帶有除錯器的可執行檔，並且在執行時啟動開發者工具，還會在sidebar中顯示除錯頁
 
-- -r Rust/Tauri模式：該專案目前使用Wails作為程式框架，使用該flag會啟動Rust版本
-
 - -m 行動端啟動：這將在Android Studio模擬器中啟動編譯後的應用程式
 
 - -b 僅構建：這將不會編譯帶有除錯器的dev版本，會清空bin目錄後構建一個release版本的可執行程式
@@ -56,9 +54,9 @@
 
 ## 技術棧
 
-框架：Tauri v2 / Wails
+框架：Tauri v2
 
-後端：Rust / Go
+後端：Rust
 
 前端：Vue3 + TypeScript @ClaudeCode
 

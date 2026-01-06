@@ -170,6 +170,7 @@ import 'grapesjs/dist/css/grapes.min.css'
 import gjsPresetWebpage from 'grapesjs-preset-webpage'
 import CodeEditor from '@/components/common/CodeEditor.vue'
 import { formatHtml, formatCss } from '@/utils/codeFormatter'
+import { logger } from '@/utils/logger'
 const props = withDefaults(defineProps<{
   modelValue?: string
   viewMode?: string

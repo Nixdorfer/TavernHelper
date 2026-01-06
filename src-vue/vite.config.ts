@@ -1,12 +1,13 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
+
 const platform = process.env.VITE_PLATFORM || 'pc'
+
 export default defineConfig({
   plugins: [vue()],
   define: {
-    'import.meta.env.VITE_PLATFORM': JSON.stringify(platform),
-    'import.meta.env.VITE_BACKEND': JSON.stringify(process.env.VITE_BACKEND || 'wails')
+    'import.meta.env.VITE_PLATFORM': JSON.stringify(platform)
   },
   resolve: {
     alias: {
@@ -27,7 +28,8 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: path.resolve(__dirname, `../dist/${platform}`),
-    emptyOutDir: true
+    outDir: path.resolve(__dirname, `dist/${platform}`),
+    emptyOutDir: true,
+    chunkSizeWarningLimit: 1500
   }
 })

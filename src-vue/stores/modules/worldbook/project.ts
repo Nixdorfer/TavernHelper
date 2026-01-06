@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Project, ProjectInfo, TimelineNode } from '@/types'
 import { projectApi } from '@/api/modules/project'
+import { logger } from '@/utils/logger'
 
 export const useWorldbookProjectStore = defineStore('worldbook-project', () => {
   const projects = ref<ProjectInfo[]>([])
@@ -27,20 +28,20 @@ export const useWorldbookProjectStore = defineStore('worldbook-project', () => {
   }
 
   async function loadProject(fileName: string) {
-    console.log('[Store.loadProject] 开始加载:', fileName)
+    logger.log('[Store.loadProject] 开始加载:', fileName)
     isLoading.value = true
     try {
       const loaded = await projectApi.load(fileName)
-      console.log('[Store.loadProject] API返回:', loaded)
+      logger.log('[Store.loadProject] API返回:', loaded)
       if (loaded) {
         loaded.timeline = loaded.timeline || []
         loaded.worldBook = loaded.worldBook || []
       }
       currentProject.value = loaded
       currentProjectName.value = fileName
-      console.log('[Store.loadProject] 加载完成')
+      logger.log('[Store.loadProject] 加载完成')
     } catch (e) {
-      console.error('[Store.loadProject] 加载失败:', e)
+      logger.error('[Store.loadProject] 加载失败:', e)
       throw e
     } finally {
       isLoading.value = false

@@ -88,6 +88,7 @@ impl DirtyManager {
         let items = self.items.read().unwrap();
         items.get(id).cloned()
     }
+    #[allow(dead_code)]
     pub fn get_dirty_items(&self) -> Vec<DirtyItem> {
         let items = self.items.read().unwrap();
         items.values().filter(|item| item.is_dirty).cloned().collect()

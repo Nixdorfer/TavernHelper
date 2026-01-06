@@ -66,7 +66,7 @@ pub struct CreationConfig {
     pub extra: std::collections::HashMap<String, serde_json::Value>,
 }
 
-fn get_creations_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+fn get_creations_dir(_app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     let exe_dir = exe_path.parent().ok_or("Cannot get exe directory")?;
     let creations_dir = exe_dir.join("creations");
@@ -350,7 +350,7 @@ pub async fn upload_creation_image(app: tauri::AppHandle, token: String) -> Resu
 
 #[tauri::command]
 pub async fn upload_gallery_image_to_remote(app: tauri::AppHandle, image_id: String, token: String) -> Result<String, String> {
-    let local_path: String = database::with_db(|conn| {
+    let local_path: String = database::with_db_log(&format!("get_image_path: {}", image_id), |conn| {
         conn.query_row(
             "SELECT local_path FROM wt_image WHERE id = ?",
             [&image_id],
@@ -398,7 +398,7 @@ async fn upload_image_to_remote(token: &str, file_data: &[u8], file_name: &str) 
 #[tauri::command]
 pub fn save_creation_app_cache(user_id: String, app_id: String, app_name: String, app_icon: String, model_config: String) -> Result<(), String> {
     let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    database::with_db(|conn| {
+    database::with_db_log(&format!("save_creation_app_cache: {}", app_id), |conn| {
         conn.execute(
             "INSERT INTO wt_creation (id, user_id, app_name, app_icon, model_config, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id, user_id) DO UPDATE SET app_name = excluded.app_name, app_icon = excluded.app_icon, model_config = excluded.model_config, updated_at = excluded.updated_at",
             rusqlite::params![app_id, user_id, app_name, app_icon, model_config, now],
@@ -409,7 +409,7 @@ pub fn save_creation_app_cache(user_id: String, app_id: String, app_name: String
 
 #[tauri::command]
 pub fn get_creation_app_cache(user_id: String, app_id: String) -> Result<String, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("get_creation_app_cache: {}", app_id), |conn| {
         conn.query_row(
             "SELECT model_config FROM wt_creation WHERE id = ? AND user_id = ?",
             rusqlite::params![app_id, user_id],
@@ -420,7 +420,7 @@ pub fn get_creation_app_cache(user_id: String, app_id: String) -> Result<String,
 
 #[tauri::command]
 pub fn get_all_creation_app_cache(user_id: String) -> Result<Vec<serde_json::Value>, String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("get_all_creation_app_cache: {}", user_id), |conn| {
         let mut stmt = conn.prepare("SELECT id, app_name, app_icon, model_config, updated_at FROM wt_creation WHERE user_id = ? ORDER BY updated_at DESC")?;
         let rows = stmt.query_map([&user_id], |row| {
             Ok(serde_json::json!({
@@ -437,7 +437,7 @@ pub fn get_all_creation_app_cache(user_id: String) -> Result<Vec<serde_json::Val
 
 #[tauri::command]
 pub fn delete_creation_app_cache(user_id: String, app_id: String) -> Result<(), String> {
-    database::with_db(|conn| {
+    database::with_db_log(&format!("delete_creation_app_cache: {}", app_id), |conn| {
         conn.execute(
             "DELETE FROM wt_creation WHERE id = ? AND user_id = ?",
             rusqlite::params![app_id, user_id],

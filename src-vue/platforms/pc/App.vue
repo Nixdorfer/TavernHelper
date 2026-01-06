@@ -31,6 +31,8 @@ import LoginModal from '@/components/modals/LoginModal.vue'
 import NotificationToast from '@/components/common/NotificationToast.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import { useAppStore, useAuthStore, useConfigStore } from '@/stores'
+import { api } from '@/api'
+import { logger } from '@/utils/logger'
 const SettingsModal = defineAsyncComponent(() => import('@/components/modals/SettingsModal.vue'))
 const ConversationView = defineAsyncComponent(() => import('./views/ConversationView.vue'))
 const PlazaView = defineAsyncComponent(() => import('./views/PlazaView.vue'))
@@ -74,12 +76,12 @@ const onLoginSuccess = async () => {
 }
 onMounted(async () => {
   try {
-    const cfg = await window.go.main.App.LoadConfig()
+    const cfg = await api.config.load()
     if (cfg) {
       configStore.$patch(cfg)
     }
   } catch (e) {
-    console.error('加载配置失败:', e)
+    logger.error('加载配置失败:', e)
   }
 })
 </script>

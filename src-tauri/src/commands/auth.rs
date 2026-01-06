@@ -1,30 +1,3 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LoginResponse {
-    pub token: String,
-    pub user: UserProfile,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UserProfile {
-    pub id: String,
-    pub email: String,
-    pub name: String,
-    #[serde(default)]
-    pub avatar: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PointsInfo {
-    pub total: i64,
-    pub used: i64,
-    pub remaining: i64,
-}
-
 fn build_request(client: &reqwest::Client, method: reqwest::Method, url: &str) -> reqwest::RequestBuilder {
     client.request(method, url)
         .header("Content-Type", "application/json")
